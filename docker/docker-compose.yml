@@ -33,7 +33,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend/react-crm # The path to your React app
+      context: ../front-end/react-crm # The path to your React app
       dockerfile: Dockerfile # Ensure you have a Dockerfile in the frontend directory
       args:
         APP_NAME: react-crm-v2.0 # Pass the APP_NAME argument here
