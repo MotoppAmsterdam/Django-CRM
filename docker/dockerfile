@@ -20,12 +20,14 @@ RUN npm -g install less
 RUN apt install -y python3-pip
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 RUN python3 -m pip install --no-cache-dir redis
+RUN apt install -y dos2unix
 
 COPY . /app
 COPY docker/entrypoint.sh /app
 COPY docker/wait-for-postgres.sh /app
 
-
+RUN dos2unix entrypoint.sh
+RUN dos2unix wait-for-postgres.sh
 RUN chmod +x entrypoint.sh 
 RUN chmod +x wait-for-postgres.sh
 ENTRYPOINT ["./entrypoint.sh"]

@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   crm-app:
     image: djcrm:1
@@ -28,6 +28,22 @@ services:
       - 5432:5432
     volumes:
       - /var/run/postgresql/:/var/run/postgresql
+    networks:
+      - nw
+
+  frontend:
+    build:
+      context: ../front-end/react-crm # The path to your React app
+      dockerfile: Dockerfile # Ensure you have a Dockerfile in the frontend directory
+      args:
+        APP_NAME: react-crm-v2.0 # Pass the APP_NAME argument here
+    ports:
+      - "3000:3000" # Exposes the React app on port 3000
+    environment:
+      - REACT_APP_API_BASE_URL=http://localhost:8000 # Connects to the backend API
+      - REACT_APP_CLIENT_ID=648453819089-qjodemb6e055k1n1cgjfdjuvi3fapuv1.apps.googleusercontent.com
+    depends_on:
+      - crm-app
     networks:
       - nw
 
