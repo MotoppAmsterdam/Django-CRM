@@ -23,6 +23,7 @@ RUN python3 -m pip install --no-cache-dir redis
 RUN apt install -y dos2unix
 
 COPY . /app
+RUN mv ENV.md .env
 COPY docker/entrypoint.sh /app
 COPY docker/wait-for-postgres.sh /app
 
