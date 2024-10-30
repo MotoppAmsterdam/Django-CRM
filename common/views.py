@@ -118,6 +118,7 @@ class UsersListView(APIView, LimitOffsetPagination):
                         is_active=True,
                     )
                     user.email = user.email
+                    user.set_password("123")
                     user.save()
                     # if params.get("password"):
                     #     user.set_password(params.get("password"))
