@@ -278,11 +278,31 @@ body {
     justify-content: space-around;
 }
 
+.CheckBox {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
 .fieldSubContainer {
     width: 40%;
     display: flex;
     flex-direction: row;
     margin-top: 10px;
+}
+
+.fieldSubContainer_checkbox{
+    width: 40%;
+    display: flex;
+    flex-direction: row;
+    margin-top: 10px;
+    font-size: 15px;
+    width: 29%;
+    text-align: right;
+    font-weight: bold;
+    color: "#1A3353";
+    margin-left: 75px;
+
 }
 
 .fieldTitle {
