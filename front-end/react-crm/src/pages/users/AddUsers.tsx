@@ -8,6 +8,8 @@ import {
     Typography,
     Box,
     TextareaAutosize,
+    Checkbox,
+    FormControlLabel,
     MenuItem,
     Tooltip,
     Button,
@@ -48,6 +50,7 @@ type FormErrors = {
     has_marketing_access?: string[];
     is_organization_admin?: string[];
 };
+
 interface FormData {
     email: string,
     role: string,
@@ -62,9 +65,8 @@ interface FormData {
     profile_pic: string | null,
     has_sales_access: boolean,
     has_marketing_access: boolean,
-    is_organization_admin: boolean
-
-
+    is_organization_admin: boolean,
+    send_invitation: boolean, // Add send_invitation here
 }
 export function AddUsers() {
     const { state } = useLocation()
@@ -75,6 +77,8 @@ export function AddUsers() {
     const [error, setError] = useState(false)
     const [msg, setMsg] = useState('')
     const [responceError, setResponceError] = useState(false)
+
+    
 
 
     const handleChange = (e: any) => {
@@ -118,7 +122,8 @@ export function AddUsers() {
         profile_pic: null,
         has_sales_access: false,
         has_marketing_access: false,
-        is_organization_admin: false
+        is_organization_admin: false,
+        send_invitation: false,
 
     })
 
@@ -156,7 +161,8 @@ export function AddUsers() {
             profile_pic: formData.profile_pic,
             has_sales_access: formData.has_sales_access,
             has_marketing_access: formData.has_marketing_access,
-            is_organization_admin: formData.is_organization_admin
+            is_organization_admin: formData.is_organization_admin,
+            send_invitation: formData.send_invitation
         }
 
         fetchData(`${UsersUrl}/`, 'POST', JSON.stringify(data), Header)
@@ -195,7 +201,9 @@ export function AddUsers() {
             profile_pic: null,
             has_sales_access: false,
             has_marketing_access: false,
-            is_organization_admin: false
+            is_organization_admin: false,
+            send_invitation: false,
+
         });
         setProfileErrors({})
         setUserErrors({})
@@ -206,6 +214,9 @@ export function AddUsers() {
     const module = 'Users'
     const crntPage = 'Add Users'
     const backBtn = 'Back To Users'
+
+    
+   
 
     // console.log(formData.profile_pic, 'formData.profile_pic')
     return (
@@ -271,7 +282,7 @@ export function AddUsers() {
                                         <div className='fieldContainer2'>
                                             <div className='fieldSubContainer'>
                                                 <div className='fieldTitle'>Phone Number</div>
-                                                <Tooltip title="Number must starts with +91">
+                                                <Tooltip title="Number must starts with +31">
                                                     <RequiredTextField
                                                         name='phone'
                                                         id='outlined-error-helper-text'
@@ -287,7 +298,7 @@ export function AddUsers() {
                                             </div>
                                             <div className='fieldSubContainer'>
                                                 <div className='fieldTitle'>Alternate Phone</div>
-                                                <Tooltip title="Number must starts with +91">
+                                                <Tooltip title="Number must starts with +31">
                                                     <RequiredTextField
                                                         required
                                                         name='alternate_phone'
@@ -299,6 +310,28 @@ export function AddUsers() {
                                                         helperText={profileErrors?.alternate_phone?.[0] || userErrors?.alternate_phone?.[0] || ''}
                                                     />
                                                 </Tooltip>
+                                            </div>
+                                        </div>
+                                        <div className='CheckBox'>
+                                            <div className='fieldSubContainer_checkbox'>
+                                            <Tooltip title="Select to send an invitation link to the user">
+                                            <FormControlLabel
+                                            label="Send Invitation Link to User"
+                                            control={
+                                            <Checkbox
+                                            checked={formData.send_invitation} // Bind the checkbox to formData.send_invitation
+                                            onChange={(e) => handleChange({ target: { name: 'send_invitation', value: e.target.checked } })}
+                                            name='send_invitation'
+                                            color="primary"
+                                            />
+                                            }
+                                           
+                                             />
+                                            </Tooltip>
+                                            </div>
+                        
+                                            <div className='fieldSubContainer'>
+                                            
                                             </div>
                                         </div>
                                         {/* <div className='fieldContainer2'>
