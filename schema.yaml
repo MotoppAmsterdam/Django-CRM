@@ -2297,6 +2297,37 @@ paths:
       responses:
         '200':
           description: No response body
+    patch:
+      operationId: user_update_partially
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: org
+        schema:
+          type: string
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPatchSwaggerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserPatchSwaggerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserPatchSwaggerRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
     delete:
       operationId: user_destroy
       parameters:
@@ -4980,6 +5011,48 @@ components:
       - role
       - state
       - street
+    UserPatchSwaggerRequest:
+      type: object
+      description: It is swagger for patching user
+      properties:
+        email:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 12
+        alternate_phone:
+          type: string
+          minLength: 1
+          maxLength: 12
+        address_line:
+          type: string
+          minLength: 1
+          maxLength: 10000
+        street:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        city:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        state:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        pincode:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        country:
+          type: string
+          minLength: 1
+          maxLength: 1000
     UserUpdateStatusSwaggerRequest:
       type: object
       properties:
