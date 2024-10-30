@@ -78,9 +78,6 @@ export function AddUsers() {
     const [msg, setMsg] = useState('')
     const [responceError, setResponceError] = useState(false)
 
-    
-
-
     const handleChange = (e: any) => {
         const { name, value, files, type, checked } = e.target;
         if (type === 'file') {
@@ -123,7 +120,7 @@ export function AddUsers() {
         has_sales_access: false,
         has_marketing_access: false,
         is_organization_admin: false,
-        send_invitation: false,
+        send_invitation: true,
 
     })
 
@@ -202,7 +199,7 @@ export function AddUsers() {
             has_sales_access: false,
             has_marketing_access: false,
             is_organization_admin: false,
-            send_invitation: false,
+            send_invitation: true,
 
         });
         setProfileErrors({})
@@ -282,7 +279,7 @@ export function AddUsers() {
                                         <div className='fieldContainer2'>
                                             <div className='fieldSubContainer'>
                                                 <div className='fieldTitle'>Phone Number</div>
-                                                <Tooltip title="Number must starts with +31">
+                                                <Tooltip title="Number must starts with +91">
                                                     <RequiredTextField
                                                         name='phone'
                                                         id='outlined-error-helper-text'
@@ -298,7 +295,7 @@ export function AddUsers() {
                                             </div>
                                             <div className='fieldSubContainer'>
                                                 <div className='fieldTitle'>Alternate Phone</div>
-                                                <Tooltip title="Number must starts with +31">
+                                                <Tooltip title="Number must starts with +91">
                                                     <RequiredTextField
                                                         required
                                                         name='alternate_phone'
