@@ -1,5 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt import views as jwt_views
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from common import views
 
@@ -27,4 +28,5 @@ urlpatterns = [
     path("user/<str:pk>/status/", views.UserStatusView.as_view()),
     path("organization/google-auth/<str:org_id>/",
          views.OrganizationGoogleAuthView.as_view()),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair')
 ]

@@ -374,6 +374,34 @@ class UserCreateSwaggerSerializer(serializers.Serializer):
     country = serializers.CharField(max_length=1000)
 
 
+class UserPatchSwaggerSerializer(serializers.Serializer):
+    """
+    It is swagger for patching user
+    """
+    ROLE_CHOICES = ["ADMIN", "USER"]
+
+    email = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    role = serializers.ChoiceField(
+        choices=ROLE_CHOICES, required=False, default=None, allow_blank=True)
+    phone = serializers.CharField(
+        max_length=12, required=False, default=None, allow_blank=True)
+    alternate_phone = serializers.CharField(
+        max_length=12, required=False, default=None, allow_blank=True)
+    address_line = serializers.CharField(
+        max_length=10000, required=False, default=None, allow_blank=True)
+    street = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    city = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    state = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    pincode = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    country = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+
+
 class UserUpdateStatusSwaggerSerializer(serializers.Serializer):
 
     STATUS_CHOICES = ["Active", "Inactive"]

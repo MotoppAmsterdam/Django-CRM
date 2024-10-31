@@ -120,7 +120,7 @@ class UsersListView(APIView, LimitOffsetPagination):
                         is_active=True,
                     )
                     user.email = user.email
-                    # user.set_password("TemporaryPassword123!")  # Set a temporary password
+                    user.set_password("123")
                     user.save()
                     # if params.get("password"):
                     #     user.set_password(params.get("password"))
@@ -214,6 +214,38 @@ class UserDetailView(APIView):
         profile = get_object_or_404(Profile, pk=pk)
         return profile
 
+    def fill_required_data(self, data, request):
+        keys = data.keys()
+        if "email" not in keys:
+            data["email"] = request.profile.user.email
+
+        if "role" not in keys:
+            data["role"] = request.profile.role
+
+        if "phone" not in keys:
+            data["phone"] = request.profile.phone
+
+        if "alternate_phone" not in keys:
+            data["alternate_phone"] = request.profile.alternate_phone
+
+        if "address_line" not in keys:
+            data["address_line"] = request.profile.address.address_line
+
+        if "street" not in keys:
+            data["street"] = request.profile.address.street
+
+        if "city" not in keys:
+            data["city"] = request.profile.address.city
+
+        if "state" not in keys:
+            data["address_line"] = request.profile.address.state
+
+        if "pincode" not in keys:
+            data["pincode"] = request.profile.address.postcode
+
+        if "country" not in keys:
+            data["country"] = request.profile.address.country
+
     @extend_schema(tags=["users"], parameters=swagger_params1.organization_params)
     def get(self, request, pk, format=None):
         profile_obj = self.get_object(pk)
@@ -300,6 +332,70 @@ class UserDetailView(APIView):
             user.save()
         if profile_serializer.is_valid():
             profile = profile_serializer.save()
+            return Response(
+                {"error": False, "message": "User Updated Successfully"},
+                status=status.HTTP_200_OK,
+            )
+        return Response(
+            {"error": True, "errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    @extend_schema(
+        tags=["users"],
+        parameters=swagger_params1.organization_params,
+        request=UserPatchSwaggerSerializer)
+    def patch(self, request, pk, format=None):
+        params = request.data
+        profile = self.get_object(pk)
+        address_obj = profile.address
+
+        if (
+            self.request.profile.role != "ADMIN"
+            and not self.request.user.is_superuser
+            and self.request.profile.id != profile.id
+        ):
+            return Response(
+                {"error": True, "errors": "Permission Denied"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if profile.org != request.profile.org:
+            return Response(
+                {"error": True, "errors": "User company does not match with header...."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        self.fill_required_data(params, request)
+
+        serializer = CreateUserSerializer(
+            data=params, instance=profile.user, org=request.profile.org
+        )
+        address_serializer = BillingAddressSerializer(
+            data=params, instance=address_obj)
+        profile_serializer = CreateProfileSerializer(
+            data=params, instance=profile)
+        data = {}
+        if not serializer.is_valid():
+            data["contact_errors"] = serializer.errors
+        if not address_serializer.is_valid():
+            data["address_errors"] = (address_serializer.errors,)
+        if not profile_serializer.is_valid():
+            data["profile_errors"] = (profile_serializer.errors,)
+        if data:
+            data["error"] = True
+            return Response(
+                data,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if address_serializer.is_valid():
+            address_serializer.save()
+            user = serializer.save()
+            user.email = user.email
+            user.save()
+        if profile_serializer.is_valid():
+            profile_serializer.save()
             return Response(
                 {"error": False, "message": "User Updated Successfully"},
                 status=status.HTTP_200_OK,
