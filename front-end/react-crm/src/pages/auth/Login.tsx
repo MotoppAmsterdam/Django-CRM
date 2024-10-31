@@ -8,6 +8,7 @@ import imgLogin from '../../assets/images/auth/img_login.png'
 import { GoogleButton } from '../../styles/CssStyled';
 import { fetchData } from '../../components/FetchData';
 import { AuthUrl, LoginUrl } from '../../services/ApiUrls';
+import CustomAuth from './CustomAuth';
 import '../../styles/style.css'
 
 declare global {
@@ -20,7 +21,6 @@ declare global {
 export default function Login() {
     const navigate = useNavigate()
     const [token, setToken] = useState(false)
-    const [name, setName] = useState(''); // State for user name
     const [email, setEmail] = useState(''); // State for email
     const [password, setPassword] = useState(''); // State for password
 
@@ -95,6 +95,15 @@ export default function Login() {
                     sx={{ height: '100%', overflow: 'hidden' }}
                 >
                     <Grid item>
+                        {/* Use CustomAuth Component */}
+                        <CustomAuth
+                            email={email}
+                            setEmail={setEmail}
+                            password={password}
+                            setPassword={setPassword}
+                            handleLogin={handleLogin}
+                        />
+                        
                         <Grid sx={{ mt: 2 }}>
                             <img src={imgLogo} alt='register_logo' className='register-logo' />
                         </Grid>
@@ -137,43 +146,7 @@ export default function Login() {
                                     </div>
                                 </Grid>
                             </Grid> */}
-                        </Grid>
-                        {/* Login Form */}
-                        <Grid container item sx={{ mt: 4, width: '100%' }} direction="column" alignItems="center">
-                            <Typography variant="body2" sx={{ mb: 1 }}>
-                                Or you can login with your email and password.
-                            </Typography>
-                            {/* Login Form */}
-                            
-                            <Stack spacing={2} sx={{ width: '100%' }}>
-                                <TextField
-                                    label="Email"
-                                    variant="outlined"
-                                    size="small" // Set size to small
-                                    fullWidth
-                                    onChange={(e) => setEmail(e.target.value)} // Capture email
-                                />
-                                <TextField
-                                    label="Password"
-                                    type="password"
-                                    variant="outlined"
-                                    size="small" // Set size to small
-                                    fullWidth
-                                    onChange={(e) => setPassword(e.target.value)} // Capture password
-                                />
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    fullWidth
-                                    onClick={handleLogin} // Trigger login
-                                    sx={{ mt: 2, backgroundColor: '#3e4b68', '&:hover': { backgroundColor: '#2d3748' }}}
-                                >
-                                    Login
-                                </Button>
-                                
-                            </Stack>
-                                                     
-                        </Grid>
+                        </Grid>                      
                     </Grid>
                 </Grid>
                 <Grid
