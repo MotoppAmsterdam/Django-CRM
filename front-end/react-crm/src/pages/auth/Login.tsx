@@ -7,8 +7,8 @@ import imgLogo from '../../assets/images/auth/img_logo.png'
 import imgLogin from '../../assets/images/auth/img_login.png'
 import { GoogleButton } from '../../styles/CssStyled';
 import { fetchData } from '../../components/FetchData';
-import { AuthUrl, LoginUrl } from '../../services/ApiUrls';
-import CustomAuth from './CustomAuth';
+import { AuthUrl } from '../../services/ApiUrls';
+import CustomAuth from './customAuth';
 import '../../styles/style.css'
 
 declare global {
@@ -21,8 +21,6 @@ declare global {
 export default function Login() {
     const navigate = useNavigate()
     const [token, setToken] = useState(false)
-    const [email, setEmail] = useState(''); // State for email
-    const [password, setPassword] = useState(''); // State for password
 
     useEffect(() => {
         if (localStorage.getItem('Token')) {
@@ -52,31 +50,6 @@ export default function Login() {
 
     });
 
-    // Handle email/password login
-    const handleLogin = async () => {
-        try {
-            const res = await fetchData(
-                `${LoginUrl}/`,
-                'POST',
-                JSON.stringify({ email, password })
-            );
-
-            console.log('Login Response:', res); // Log the full response for debugging
-
-            if (res.access) {
-                localStorage.setItem('Token', `Bearer ${res.access}`);
-                navigate('/app');
-            } else {
-                console.error('Login failed:', res);
-                alert('Login failed. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error during login:', error);
-            alert('An unexpected error occurred during login. Please try again later.');
-        }
-    };
-
-
     return (
         <div>
             <Stack
@@ -95,21 +68,12 @@ export default function Login() {
                     sx={{ height: '100%', overflow: 'hidden' }}
                 >
                     <Grid item>
-                        {/* Use CustomAuth Component */}
-                        <CustomAuth
-                            email={email}
-                            setEmail={setEmail}
-                            password={password}
-                            setPassword={setPassword}
-                            handleLogin={handleLogin}
-                        />
-                        
                         <Grid sx={{ mt: 2 }}>
                             <img src={imgLogo} alt='register_logo' className='register-logo' />
                         </Grid>
                         <Typography variant='h5' style={{ fontWeight: 'bolder' }}>Sign In</Typography>
+                        <CustomAuth />                
                         <Grid item sx={{ mt: 4 }}>
-
                             
                             {/* <GoogleLogin
                                 onSuccess={credentialResponse => {

@@ -1,7 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt import views as jwt_views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from common.views import UserRegistrationView, UserLoginView
 
 from common import views
 
@@ -15,10 +14,6 @@ urlpatterns = [
         jwt_views.TokenRefreshView.as_view(),
         name="token_refresh",
     ),
-    # ... existing paths
-    path("auth/register/", UserRegistrationView.as_view(), name="user-register"),
-    path("auth/login/", UserLoginView.as_view(), name="user-login"),
-    
     # GoogleLoginView
     path("auth/google/", views.GoogleLoginView.as_view()),
     path("org/", views.OrgProfileCreateView.as_view()),
