@@ -37,7 +37,7 @@ from accounts.serializer import AccountSerializer
 from cases.models import Case
 from cases.serializer import CaseSerializer
 
-##from common.custom_auth import JSONWebTokenAuthentication
+# from common.custom_auth import JSONWebTokenAuthentication
 from common import serializer, swagger_params1
 from common.models import APISettings, Document, Org, Profile, User
 from common.serializer import *
@@ -96,7 +96,8 @@ class UsersListView(APIView, LimitOffsetPagination):
         else:
             params = request.data
             if params:
-                user_serializer = CreateUserSerializer(data=params, org=request.profile.org)
+                user_serializer = CreateUserSerializer(
+                    data=params, org=request.profile.org)
                 address_serializer = BillingAddressSerializer(data=params)
                 profile_serializer = CreateProfileSerializer(data=params)
                 data = {}
@@ -114,7 +115,7 @@ class UsersListView(APIView, LimitOffsetPagination):
                 if address_serializer.is_valid():
                     address_obj = address_serializer.save()
                     user = user_serializer.save(
-                        is_active=True,
+                        is_active=False,
                     )
                     user.email = user.email
                     user.set_password("123")
@@ -145,11 +146,13 @@ class UsersListView(APIView, LimitOffsetPagination):
                 {"error": True, "errors": "Permission Denied"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        queryset = Profile.objects.filter(org=request.profile.org).order_by("-id")
+        queryset = Profile.objects.filter(
+            org=request.profile.org).order_by("-id")
         params = request.query_params
         if params:
             if params.get("email"):
-                queryset = queryset.filter(user__email__icontains=params.get("email"))
+                queryset = queryset.filter(
+                    user__email__icontains=params.get("email"))
             if params.get("role"):
                 queryset = queryset.filter(role=params.get("role"))
             if params.get("status"):
@@ -179,7 +182,8 @@ class UsersListView(APIView, LimitOffsetPagination):
         results_inactive_users = self.paginate_queryset(
             queryset_inactive_users.distinct(), self.request, view=self
         )
-        inactive_users = ProfileSerializer(results_inactive_users, many=True).data
+        inactive_users = ProfileSerializer(
+            results_inactive_users, many=True).data
         if results_inactive_users:
             offset = queryset_inactive_users.filter(
                 id__gte=results_inactive_users[-1].id
@@ -206,7 +210,6 @@ class UserDetailView(APIView):
     def get_object(self, pk):
         profile = get_object_or_404(Profile, pk=pk)
         return profile
-
 
     def fill_required_data(self, data, request):
         keys = data.keys()
@@ -239,7 +242,6 @@ class UserDetailView(APIView):
 
         if "country" not in keys:
             data["country"] = request.profile.address.country
-
 
     @extend_schema(tags=["users"], parameters=swagger_params1.organization_params)
     def get(self, request, pk, format=None):
@@ -303,8 +305,10 @@ class UserDetailView(APIView):
         serializer = CreateUserSerializer(
             data=params, instance=profile.user, org=request.profile.org
         )
-        address_serializer = BillingAddressSerializer(data=params, instance=address_obj)
-        profile_serializer = CreateProfileSerializer(data=params, instance=profile)
+        address_serializer = BillingAddressSerializer(
+            data=params, instance=address_obj)
+        profile_serializer = CreateProfileSerializer(
+            data=params, instance=profile)
         data = {}
         if not serializer.is_valid():
             data["contact_errors"] = serializer.errors
@@ -364,8 +368,10 @@ class UserDetailView(APIView):
         serializer = CreateUserSerializer(
             data=params, instance=profile.user, org=request.profile.org
         )
-        address_serializer = BillingAddressSerializer(data=params, instance=address_obj)
-        profile_serializer = CreateProfileSerializer(data=params, instance=profile)
+        address_serializer = BillingAddressSerializer(
+            data=params, instance=address_obj)
+        profile_serializer = CreateProfileSerializer(
+            data=params, instance=profile)
         data = {}
         if not serializer.is_valid():
             data["contact_errors"] = serializer.errors
@@ -396,9 +402,8 @@ class UserDetailView(APIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-
     @extend_schema(
-        tags=["users"],parameters=swagger_params1.organization_params
+        tags=["users"], parameters=swagger_params1.organization_params
     )
     def delete(self, request, pk, format=None):
         if self.request.profile.role != "ADMIN" and not self.request.profile.is_admin:
@@ -427,7 +432,8 @@ class ApiHomeView(APIView):
 
     @extend_schema(parameters=swagger_params1.organization_params)
     def get(self, request, format=None):
-        accounts = Account.objects.filter(status="open", org=request.profile.org)
+        accounts = Account.objects.filter(
+            status="open", org=request.profile.org)
         contacts = Contact.objects.filter(org=request.profile.org)
         leads = Lead.objects.filter(org=request.profile.org).exclude(
             Q(status="converted") | Q(status="closed")
@@ -436,7 +442,8 @@ class ApiHomeView(APIView):
 
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
             accounts = accounts.filter(
-                Q(assigned_to=self.request.profile) | Q(created_by=self.request.profile.user)
+                Q(assigned_to=self.request.profile) | Q(
+                    created_by=self.request.profile.user)
             )
             contacts = contacts.filter(
                 Q(assigned_to__id__in=self.request.profile)
@@ -458,7 +465,8 @@ class ApiHomeView(APIView):
         context["accounts"] = AccountSerializer(accounts, many=True).data
         context["contacts"] = ContactSerializer(contacts, many=True).data
         context["leads"] = LeadSerializer(leads, many=True).data
-        context["opportunities"] = OpportunitySerializer(opportunities, many=True).data
+        context["opportunities"] = OpportunitySerializer(
+            opportunities, many=True).data
         return Response(context, status=status.HTTP_200_OK)
 
 
@@ -483,7 +491,8 @@ class OrgProfileCreateView(APIView):
             org_obj = serializer.save()
 
             # now creating the profile
-            profile_obj = self.model2.objects.create(user=request.user, org=org_obj)
+            profile_obj = self.model2.objects.create(
+                user=request.user, org=org_obj)
             # now the current user is the admin of the newly created organisation
             profile_obj.is_organization_admin = True
             profile_obj.role = 'ADMIN'
@@ -542,25 +551,30 @@ class DocumentListView(APIView, LimitOffsetPagination):
 
     def get_context_data(self, **kwargs):
         params = self.request.query_params
-        queryset = self.model.objects.filter(org=self.request.profile.org).order_by("-id")
+        queryset = self.model.objects.filter(
+            org=self.request.profile.org).order_by("-id")
         if self.request.user.is_superuser or self.request.profile.role == "ADMIN":
             queryset = queryset
         else:
             if self.request.profile.documents():
                 doc_ids = self.request.profile.documents().values_list("id", flat=True)
                 shared_ids = queryset.filter(
-                    Q(status="active") & Q(shared_to__id__in=[self.request.profile.id])
+                    Q(status="active") & Q(
+                        shared_to__id__in=[self.request.profile.id])
                 ).values_list("id", flat=True)
-                queryset = queryset.filter(Q(id__in=doc_ids) | Q(id__in=shared_ids))
+                queryset = queryset.filter(
+                    Q(id__in=doc_ids) | Q(id__in=shared_ids))
             else:
                 queryset = queryset.filter(
-                    Q(status="active") & Q(shared_to__id__in=[self.request.profile.id])
+                    Q(status="active") & Q(
+                        shared_to__id__in=[self.request.profile.id])
                 )
 
         request_post = params
         if request_post:
             if request_post.get("title"):
-                queryset = queryset.filter(title__icontains=request_post.get("title"))
+                queryset = queryset.filter(
+                    title__icontains=request_post.get("title"))
             if request_post.get("status"):
                 queryset = queryset.filter(status=request_post.get("status"))
 
@@ -570,11 +584,13 @@ class DocumentListView(APIView, LimitOffsetPagination):
                 )
 
         context = {}
-        profile_list = Profile.objects.filter(is_active=True, org=self.request.profile.org)
+        profile_list = Profile.objects.filter(
+            is_active=True, org=self.request.profile.org)
         if self.request.profile.role == "ADMIN" or self.request.profile.is_admin:
             profiles = profile_list.order_by("user__email")
         else:
-            profiles = profile_list.filter(role="ADMIN").order_by("user__email")
+            profiles = profile_list.filter(
+                role="ADMIN").order_by("user__email")
         search = False
         if (
                 params.get("document_file")
@@ -588,7 +604,8 @@ class DocumentListView(APIView, LimitOffsetPagination):
         results_documents_active = self.paginate_queryset(
             queryset_documents_active.distinct(), self.request, view=self
         )
-        documents_active = DocumentSerializer(results_documents_active, many=True).data
+        documents_active = DocumentSerializer(
+            results_documents_active, many=True).data
         if results_documents_active:
             offset = queryset_documents_active.filter(
                 id__gte=results_documents_active[-1].id
@@ -656,7 +673,8 @@ class DocumentListView(APIView, LimitOffsetPagination):
                     doc.shared_to.add(*profiles)
             if params.get("teams"):
                 teams_list = params.get("teams")
-                teams = Teams.objects.filter(id__in=teams_list, org=request.profile.org)
+                teams = Teams.objects.filter(
+                    id__in=teams_list, org=request.profile.org)
                 if teams:
                     doc.teams.add(*teams)
 
@@ -708,7 +726,8 @@ class DocumentDetailView(APIView):
         if request.profile.role == "ADMIN" or request.user.is_superuser:
             profiles = profile_list.order_by("user__email")
         else:
-            profiles = profile_list.filter(role="ADMIN").order_by("user__email")
+            profiles = profile_list.filter(
+                role="ADMIN").order_by("user__email")
         context = {}
         context.update(
             {
@@ -801,7 +820,8 @@ class DocumentDetailView(APIView):
             doc.teams.clear()
             if params.get("teams"):
                 teams_list = params.get("teams")
-                teams = Teams.objects.filter(id__in=teams_list, org=request.profile.org)
+                teams = Teams.objects.filter(
+                    id__in=teams_list, org=request.profile.org)
                 if teams:
                     doc.teams.add(*teams)
             return Response(
@@ -850,7 +870,8 @@ class UserStatusView(APIView):
         context = {}
         active_profiles = profiles.filter(is_active=True)
         inactive_profiles = profiles.filter(is_active=False)
-        context["active_profiles"] = ProfileSerializer(active_profiles, many=True).data
+        context["active_profiles"] = ProfileSerializer(
+            active_profiles, many=True).data
         context["inactive_profiles"] = ProfileSerializer(
             inactive_profiles, many=True
         ).data
@@ -888,7 +909,8 @@ class DomainList(APIView):
             assign_to_list = params.get("lead_assigned_to")
         serializer = APISettingsSerializer(data=params)
         if serializer.is_valid():
-            settings_obj = serializer.save(created_by=request.profile.user, org=request.profile.org)
+            settings_obj = serializer.save(
+                created_by=request.profile.user, org=request.profile.org)
             if params.get("tags"):
                 tags = params.get("tags")
                 for tag in tags:
@@ -919,7 +941,8 @@ class DomainDetailView(APIView):
     def get(self, request, pk, format=None):
         api_setting = self.get_object(pk)
         return Response(
-            {"error": False, "domain": APISettingsListSerializer(api_setting).data},
+            {"error": False, "domain": APISettingsListSerializer(
+                api_setting).data},
             status=status.HTTP_200_OK,
         )
 
@@ -979,12 +1002,15 @@ class GoogleLoginView(APIView):
         description="Login through Google", request=SocialLoginSerializer,
     )
     def post(self, request):
-        payload = {'access_token': request.data.get("token")}  # validate the token
-        r = requests.get('https://www.googleapis.com/oauth2/v2/userinfo', params=payload)
+        payload = {'access_token': request.data.get(
+            "token")}  # validate the token
+        r = requests.get(
+            'https://www.googleapis.com/oauth2/v2/userinfo', params=payload)
         data = json.loads(r.text)
         print(data)
         if 'error' in data:
-            content = {'message': 'wrong google token / this google token is already expired.'}
+            content = {
+                'message': 'wrong google token / this google token is already expired.'}
             return Response(content)
         # create user if not exist
         try:
@@ -994,53 +1020,67 @@ class GoogleLoginView(APIView):
             user.email = data['email']
             user.profile_pic = data['picture']
             # provider random default password
-            user.password = make_password(BaseUserManager().make_random_password())
+            user.password = make_password(
+                BaseUserManager().make_random_password())
             user.email = data['email']
             user.save()
-        token = RefreshToken.for_user(user)  # generate token without username & password
+        # generate token without username & password
+        token = RefreshToken.for_user(user)
         response = {}
         response['username'] = user.email
         response['access_token'] = str(token.access_token)
         response['refresh_token'] = str(token)
         response['user_id'] = user.id
         return Response(response)
-    
+
+
 class ValidateTokenView(APIView):
-    def post(self, request):
-        token = request.data.get("token")
-        # Fetch the profile associated with the token
-        user = get_object_or_404(User, activation_key=token)
+    def post(self, request, activation_key):
+        user = get_object_or_404(User, activation_key=activation_key)
         # Check if the token has expired
         if user.key_expires < timezone.now():
             return Response({"error": True, "message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
         # Token is valid
-        return Response({"error": False, "message": "Token is valid"}, status=status.HTTP_200_OK)
+        return Response({"error": False, "message": "Token is valid", "token": activation_key}, status=status.HTTP_200_OK)
 
 
+@extend_schema(request=PasswordSetupSerializer)
 class PasswordSetupView(APIView):
-    def post(self, request):
-        token = request.data.get("token")
-        new_password = request.data.get("password")
-        # Fetch profile by token
-        user = get_object_or_404(user, activation_key=token)
-        # Confirm token is still valid
-        if user.key_expires < timezone.now():
-            return Response({"error": True, "message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
-        # Set the new password for the user and activate the account
-        user.password = make_password(new_password)  # Set hashed password
-        user.is_active = True  # Activate the user
-        user.save()
-        # Invalidate the token
-        user.activation_key = None
-        user.key_expires = None
-        user.save()
- 
-        # Generate or retrieve a token for the user
-        token = Token.objects.get_or_create(user=user)
- 
-        # Return the token to the frontend
-        return Response({
-            "error": False,
-            "message": "Password set successfully",
-            "token": token.key  # Send the token key to the React app
-        }, status=status.HTTP_200_OK)
+    def post(self, request, activation_key):
+        # Validate the incoming request data
+        serializer = PasswordSetupSerializer(data=request.data)
+        if serializer.is_valid():  # If data is valid
+            # Access the validated password
+            new_password = serializer.validated_data['password']
+
+            # Fetch the user by activation_key
+            user = get_object_or_404(User, activation_key=activation_key)
+
+            # Confirm token is still valid
+            if user.key_expires < timezone.now():
+                return Response({"error": True, "message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Set the new password for the user and activate the account
+            user.password = make_password(new_password)  # Set hashed password
+            user.is_active = True  # Activate the user
+            user.save()
+
+            # Invalidate the token
+            user.activation_key = None
+            user.key_expires = None
+            user.save()
+
+            # Create JWT tokens for the user
+            refresh = RefreshToken.for_user(user)
+
+            # Return the tokens to the frontend
+            return Response({
+                "error": False,
+                "message": "Password set successfully",
+                "refresh": str(refresh),
+                # This is the access token
+                "access": str(refresh.access_token),
+            }, status=status.HTTP_200_OK)
+
+        # If validation fails, return the errors
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

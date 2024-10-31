@@ -27,6 +27,6 @@ urlpatterns = [
     path("api-settings/<str:pk>/", views.DomainDetailView.as_view()),
     path("user/<str:pk>/status/", views.UserStatusView.as_view()),
     path('auth/validate-token/<str:activation_key>/', views.ValidateTokenView.as_view()),
-    path('auth/password-setup/', views.PasswordSetupView.as_view()),
+    path('auth/password-setup/<str:activation_key>/', views.PasswordSetupView.as_view()),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair')
 ]
