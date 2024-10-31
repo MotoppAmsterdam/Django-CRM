@@ -211,37 +211,38 @@ class UserDetailView(APIView):
         profile = get_object_or_404(Profile, pk=pk)
         return profile
 
-    def fill_required_data(self, data, request):
+
+    def fill_required_data(self, data, profile):
         keys = data.keys()
         if "email" not in keys:
-            data["email"] = request.profile.user.email
+            data["email"] = profile.user.email
 
         if "role" not in keys:
-            data["role"] = request.profile.role
+            data["role"] = profile.role
 
         if "phone" not in keys:
-            data["phone"] = request.profile.phone
+            data["phone"] = profile.phone
 
         if "alternate_phone" not in keys:
-            data["alternate_phone"] = request.profile.alternate_phone
+            data["alternate_phone"] = profile.alternate_phone
 
         if "address_line" not in keys:
-            data["address_line"] = request.profile.address.address_line
+            data["address_line"] = profile.address.address_line
 
         if "street" not in keys:
-            data["street"] = request.profile.address.street
+            data["street"] = profile.address.street
 
         if "city" not in keys:
-            data["city"] = request.profile.address.city
+            data["city"] = profile.address.city
 
         if "state" not in keys:
-            data["address_line"] = request.profile.address.state
+            data["address_line"] = profile.address.state
 
         if "pincode" not in keys:
-            data["pincode"] = request.profile.address.postcode
+            data["pincode"] = profile.address.postcode
 
         if "country" not in keys:
-            data["country"] = request.profile.address.country
+            data["country"] = profile.address.country
 
     @extend_schema(tags=["users"], parameters=swagger_params1.organization_params)
     def get(self, request, pk, format=None):
@@ -363,7 +364,7 @@ class UserDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        self.fill_required_data(params, request)
+        self.fill_required_data(params, profile)
 
         serializer = CreateUserSerializer(
             data=params, instance=profile.user, org=request.profile.org
