@@ -28,3 +28,4 @@ export const UserUrl = '/api/user'
 // PROFILE
 export const ProfileUrl = '/api/profile'
 // 
+export const OrgAuthUrl = '/api/organization/google-auth'

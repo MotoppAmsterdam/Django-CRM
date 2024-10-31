@@ -211,7 +211,6 @@ class UserDetailView(APIView):
         profile = get_object_or_404(Profile, pk=pk)
         return profile
 
-
     def fill_required_data(self, data, profile):
         keys = data.keys()
         if "email" not in keys:
@@ -535,6 +534,41 @@ class OrgProfileCreateView(APIView):
                 "profile_org_list": serializer.data,
             }
         )
+
+
+class OrganizationGoogleAuthView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, org_id):
+        if request.profile.role != "ADMIN":
+            return Response(
+                {
+                    "error": True,
+                    "errors": "You do not have Permission to perform this action",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        # Fetch the organization's google_auth_enabled status
+        organization = get_object_or_404(Org, id=org_id)
+        return Response({'google_auth_enabled': organization.google_auth_enabled})
+
+    def patch(self, request, org_id):
+        if request.profile.role != "ADMIN":
+            return Response(
+                {
+                    "error": True,
+                    "errors": "You do not have Permission to perform this action",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        # Update the organization's google_auth_enabled status
+        organization = get_object_or_404(Org, id=org_id)
+        google_auth_enabled = request.data.get('google_auth_enabled', None)
+        if google_auth_enabled is not None:
+            organization.google_auth_enabled = google_auth_enabled
+            organization.save()
+            return Response({'google_auth_enabled': organization.google_auth_enabled})
+        return Response({"error": "Invalid data"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProfileView(APIView):
@@ -1019,6 +1053,12 @@ class GoogleLoginView(APIView):
         # create user if not exist
         try:
             user = User.objects.get(email=data['email'])
+            profile = Profile.objects.filter(user=user).first()
+            if profile and profile.org and not profile.org.google_auth_enabled:
+                return Response(
+                    {"error": True, "message": "Google login is disabled for this organization."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
         except User.DoesNotExist:
             user = User()
             user.email = data['email']

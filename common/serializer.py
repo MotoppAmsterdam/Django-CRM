@@ -22,7 +22,7 @@ from common.models import (
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Org
-        fields = ("id", "name","api_key")
+        fields = ("id", "name", "google_auth_enabled", "api_key")
 
 
 class SocialLoginSerializer(serializers.Serializer):
@@ -59,7 +59,6 @@ class LeadCommentSerializer(serializers.ModelSerializer):
             "commented_by",
             "lead",
         )
-
 
 
 class OrgProfileCreateSerializer(serializers.ModelSerializer):
@@ -115,7 +114,8 @@ class BillingAddressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Address
-        fields = ("address_line", "street", "city", "state", "postcode", "country")
+        fields = ("address_line", "street", "city",
+                  "state", "postcode", "country")
 
     def __init__(self, *args, **kwargs):
         account_view = kwargs.pop("account", False)
@@ -180,7 +180,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id","email","profile_pic"]
+        fields = ["id", "email", "profile_pic"]
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -256,7 +256,8 @@ class DocumentCreateSerializer(serializers.ModelSerializer):
                     "Document with this Title already exists"
                 )
         if Document.objects.filter(title__iexact=title, org=self.org).exists():
-            raise serializers.ValidationError("Document with this Title already exists")
+            raise serializers.ValidationError(
+                "Document with this Title already exists")
         return title
 
     class Meta:
@@ -320,6 +321,7 @@ class APISettingsListSerializer(serializers.ModelSerializer):
             "org",
         ]
 
+
 class APISettingsSwaggerSerializer(serializers.ModelSerializer):
     class Meta:
         model = APISettings
@@ -341,6 +343,7 @@ class DocumentCreateSwaggerSerializer(serializers.ModelSerializer):
             "shared_to",
         ]
 
+
 class DocumentEditSwaggerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
@@ -359,11 +362,11 @@ class UserCreateSwaggerSerializer(serializers.Serializer):
     """
     ROLE_CHOICES = ["ADMIN", "USER"]
 
-    email = serializers.CharField(max_length=1000,required=True)
-    role = serializers.ChoiceField(choices = ROLE_CHOICES,required=True)
+    email = serializers.CharField(max_length=1000, required=True)
+    role = serializers.ChoiceField(choices=ROLE_CHOICES, required=True)
     phone = serializers.CharField(max_length=12)
     alternate_phone = serializers.CharField(max_length=12)
-    address_line = serializers.CharField(max_length=10000,required=True)
+    address_line = serializers.CharField(max_length=10000, required=True)
     street = serializers.CharField(max_length=1000)
     city = serializers.CharField(max_length=1000)
     state = serializers.CharField(max_length=1000)
@@ -377,25 +380,37 @@ class UserPatchSwaggerSerializer(serializers.Serializer):
     """
     ROLE_CHOICES = ["ADMIN", "USER"]
 
-    email = serializers.CharField(max_length=1000, required=False, default=None, allow_blank=True)
-    role = serializers.ChoiceField(choices=ROLE_CHOICES, required=False, default=None, allow_blank=True)
-    phone = serializers.CharField(max_length=12, required=False, default=None, allow_blank=True)
-    alternate_phone = serializers.CharField(max_length=12, required=False, default=None, allow_blank=True)
-    address_line = serializers.CharField(max_length=10000, required=False, default=None, allow_blank=True)
-    street = serializers.CharField(max_length=1000, required=False, default=None, allow_blank=True)
-    city = serializers.CharField(max_length=1000, required=False, default=None, allow_blank=True)
-    state = serializers.CharField(max_length=1000, required=False, default=None, allow_blank=True)
-    pincode = serializers.CharField(max_length=1000, required=False, default=None, allow_blank=True)
-    country = serializers.CharField(max_length=1000, required=False, default=None, allow_blank=True)
+    email = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    role = serializers.ChoiceField(
+        choices=ROLE_CHOICES, required=False, default=None, allow_blank=True)
+    phone = serializers.CharField(
+        max_length=12, required=False, default=None, allow_blank=True)
+    alternate_phone = serializers.CharField(
+        max_length=12, required=False, default=None, allow_blank=True)
+    address_line = serializers.CharField(
+        max_length=10000, required=False, default=None, allow_blank=True)
+    street = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    city = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    state = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    pincode = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
+    country = serializers.CharField(
+        max_length=1000, required=False, default=None, allow_blank=True)
 
 
 class UserUpdateStatusSwaggerSerializer(serializers.Serializer):
 
     STATUS_CHOICES = ["Active", "Inactive"]
 
+
     status = serializers.ChoiceField(choices = STATUS_CHOICES,required=True)
 
 class PasswordSetupSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
+
 
 
