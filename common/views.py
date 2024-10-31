@@ -211,37 +211,37 @@ class UserDetailView(APIView):
         profile = get_object_or_404(Profile, pk=pk)
         return profile
 
-    def fill_required_data(self, data, request):
+    def fill_required_data(self, data, profile):
         keys = data.keys()
         if "email" not in keys:
-            data["email"] = request.profile.user.email
+            data["email"] = profile.user.email
 
         if "role" not in keys:
-            data["role"] = request.profile.role
+            data["role"] = profile.role
 
         if "phone" not in keys:
-            data["phone"] = request.profile.phone
+            data["phone"] = profile.phone
 
         if "alternate_phone" not in keys:
-            data["alternate_phone"] = request.profile.alternate_phone
+            data["alternate_phone"] = profile.alternate_phone
 
         if "address_line" not in keys:
-            data["address_line"] = request.profile.address.address_line
+            data["address_line"] = profile.address.address_line
 
         if "street" not in keys:
-            data["street"] = request.profile.address.street
+            data["street"] = profile.address.street
 
         if "city" not in keys:
-            data["city"] = request.profile.address.city
+            data["city"] = profile.address.city
 
         if "state" not in keys:
-            data["address_line"] = request.profile.address.state
+            data["address_line"] = profile.address.state
 
         if "pincode" not in keys:
-            data["pincode"] = request.profile.address.postcode
+            data["pincode"] = profile.address.postcode
 
         if "country" not in keys:
-            data["country"] = request.profile.address.country
+            data["country"] = profile.address.country
 
     @extend_schema(tags=["users"], parameters=swagger_params1.organization_params)
     def get(self, request, pk, format=None):
@@ -363,7 +363,7 @@ class UserDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        self.fill_required_data(params, request)
+        self.fill_required_data(params, profile)
 
         serializer = CreateUserSerializer(
             data=params, instance=profile.user, org=request.profile.org
@@ -406,23 +406,26 @@ class UserDetailView(APIView):
         tags=["users"], parameters=swagger_params1.organization_params
     )
     def delete(self, request, pk, format=None):
-        if self.request.profile.role != "ADMIN" and not self.request.profile.is_admin:
+        profile = self.get_object(pk)
+
+        if (request.profile.role != "ADMIN"
+                and not request.user.is_superuser
+                and request.profile.id != profile.id):
             return Response(
-                {"error": True, "errors": "Permission Denied"},
-                status=status.HTTP_403_FORBIDDEN,
+                {
+                    "error": True,
+                    "errors": "Permission Denied"
+                },
+                status=status.HTTP_403_FORBIDDEN
             )
-        self.object = self.get_object(pk)
-        if self.object.id == request.profile.id:
-            return Response(
-                {"error": True, "errors": "Permission Denied"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        deleted_by = self.request.profile.user.email
-        send_email_user_delete.delay(
-            self.object.user.email,
-            deleted_by=deleted_by,
-        )
-        self.object.delete()
+        # deleted_by = request.profile.user.email
+        # send_email_user_delete(
+        #     profile.user.email,
+        #     deleted_by=deleted_by
+        # )
+        user = profile.user
+        profile.delete()
+        user.delete()
         return Response({"status": "success"}, status=status.HTTP_200_OK)
 
 
@@ -531,6 +534,41 @@ class OrgProfileCreateView(APIView):
                 "profile_org_list": serializer.data,
             }
         )
+
+
+class OrganizationGoogleAuthView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, org_id):
+        if request.profile.role != "ADMIN":
+            return Response(
+                {
+                    "error": True,
+                    "errors": "You do not have Permission to perform this action",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        # Fetch the organization's google_auth_enabled status
+        organization = get_object_or_404(Org, id=org_id)
+        return Response({'google_auth_enabled': organization.google_auth_enabled})
+
+    def patch(self, request, org_id):
+        if request.profile.role != "ADMIN":
+            return Response(
+                {
+                    "error": True,
+                    "errors": "You do not have Permission to perform this action",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        # Update the organization's google_auth_enabled status
+        organization = get_object_or_404(Org, id=org_id)
+        google_auth_enabled = request.data.get('google_auth_enabled', None)
+        if google_auth_enabled is not None:
+            organization.google_auth_enabled = google_auth_enabled
+            organization.save()
+            return Response({'google_auth_enabled': organization.google_auth_enabled})
+        return Response({"error": "Invalid data"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProfileView(APIView):
@@ -1015,6 +1053,12 @@ class GoogleLoginView(APIView):
         # create user if not exist
         try:
             user = User.objects.get(email=data['email'])
+            profile = Profile.objects.filter(user=user).first()
+            if profile and profile.org and not profile.org.google_auth_enabled:
+                return Response(
+                    {"error": True, "message": "Google login is disabled for this organization."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
         except User.DoesNotExist:
             user = User()
             user.email = data['email']
