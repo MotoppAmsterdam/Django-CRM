@@ -8,6 +8,7 @@ import imgLogin from '../../assets/images/auth/img_login.png'
 import { GoogleButton } from '../../styles/CssStyled';
 import { fetchData } from '../../components/FetchData';
 import { AuthUrl } from '../../services/ApiUrls';
+import CustomAuth from './customAuth';
 import '../../styles/style.css'
 
 declare global {
@@ -48,6 +49,7 @@ export default function Login() {
         },
 
     });
+
     return (
         <div>
             <Stack
@@ -70,8 +72,8 @@ export default function Login() {
                             <img src={imgLogo} alt='register_logo' className='register-logo' />
                         </Grid>
                         <Typography variant='h5' style={{ fontWeight: 'bolder' }}>Sign In</Typography>
+                        <CustomAuth />                
                         <Grid item sx={{ mt: 4 }}>
-
                             
                             {/* <GoogleLogin
                                 onSuccess={credentialResponse => {
@@ -108,8 +110,7 @@ export default function Login() {
                                     </div>
                                 </Grid>
                             </Grid> */}
-                        </Grid>
-
+                        </Grid>                      
                     </Grid>
                 </Grid>
                 <Grid
