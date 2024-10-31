@@ -25,23 +25,18 @@ def send_email_to_new_user(user_id):
         context = {}
         user_email = user_obj.email
         context["url"] = settings.DOMAIN_NAME
-        context["uid"] = (urlsafe_base64_encode(force_bytes(user_obj.pk)),)
         context["token"] = account_activation_token.make_token(user_obj)
         time_delta_two_hours = datetime.datetime.strftime(
             timezone.now() + datetime.timedelta(hours=2), "%Y-%m-%d-%H-%M-%S"
         )
         # creating an activation token and saving it in user model
+        expiration_time = timezone.now() + datetime.timedelta(hours=2)
         activation_key = context["token"] + time_delta_two_hours
         user_obj.activation_key = activation_key
+        user_obj.key_expires = expiration_time
         user_obj.save()
 
-        context["complete_url"] = context[
-            "url"
-        ] + "/auth/activate-user/{}/{}/{}/".format(
-            context["uid"][0],
-            context["token"],
-            activation_key,
-        )
+        context["complete_url"] = f"{context['url']}/auth/validate-token/?token={context['token']}"
         recipients = [
             user_email,
         ]
@@ -112,7 +107,7 @@ def send_email_user_mentions(
         if recipients:
             for recipient in recipients:
                 recipients_list = [
-                    recipient,
+                    recipient,   
                 ]
                 context["mentioned_user"] = recipient
                 html_content = render_to_string("comment_email.html", context=context)
