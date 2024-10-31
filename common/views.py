@@ -24,7 +24,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
-#from common.external_auth import CustomDualAuthentication
+# from common.external_auth import CustomDualAuthentication
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.pagination import LimitOffsetPagination
@@ -66,7 +66,6 @@ from teams.serializer import TeamsSerializer
 
 
 class GetTeamsAndUsersView(APIView):
-
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(tags=["users"], parameters=swagger_params1.organization_params)
@@ -74,7 +73,7 @@ class GetTeamsAndUsersView(APIView):
         data = {}
         teams = Teams.objects.filter(org=request.profile.org).order_by("-id")
         teams_data = TeamsSerializer(teams, many=True).data
-        profiles = Profile.objects.filter(is_active=True, org=request.profile.org).order_by(
+        profiles = Profile.objects.filter(is_active=False, org=request.profile.org).order_by(
             "user__email"
         )
         profiles_data = ProfileSerializer(profiles, many=True).data
@@ -84,9 +83,9 @@ class GetTeamsAndUsersView(APIView):
 
 
 class UsersListView(APIView, LimitOffsetPagination):
-
     permission_classes = (IsAuthenticated,)
-    @extend_schema(parameters=swagger_params1.organization_params,request=UserCreateSwaggerSerializer)
+
+    @extend_schema(parameters=swagger_params1.organization_params, request=UserCreateSwaggerSerializer)
     def post(self, request, format=None):
         print(request.profile.role, request.user.is_superuser)
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
@@ -130,15 +129,13 @@ class UsersListView(APIView, LimitOffsetPagination):
                         org=request.profile.org,
                     )
 
-                    # send_email_to_new_user.delay(
-                    #     profile.id,
-                    #     request.profile.org.id,
-                    # )
+                    send_email_to_new_user(
+                        user.id
+                    )
                     return Response(
                         {"error": False, "message": "User Created Successfully"},
                         status=status.HTTP_201_CREATED,
                     )
-
 
     @extend_schema(parameters=swagger_params1.user_list_params)
     def get(self, request, format=None):
@@ -213,9 +210,9 @@ class UserDetailView(APIView):
     def get(self, request, pk, format=None):
         profile_obj = self.get_object(pk)
         if (
-            self.request.profile.role != "ADMIN"
-            and not self.request.profile.is_admin
-            and self.request.profile.id != profile_obj.id
+                self.request.profile.role != "ADMIN"
+                and not self.request.profile.is_admin
+                and self.request.profile.id != profile_obj.id
         ):
             return Response(
                 {"error": True, "errors": "Permission Denied"},
@@ -248,15 +245,15 @@ class UserDetailView(APIView):
             status=status.HTTP_200_OK,
         )
 
-    @extend_schema(tags=["users"],parameters=swagger_params1.organization_params, request=UserCreateSwaggerSerializer)
+    @extend_schema(tags=["users"], parameters=swagger_params1.organization_params, request=UserCreateSwaggerSerializer)
     def put(self, request, pk, format=None):
         params = request.data
         profile = self.get_object(pk)
         address_obj = profile.address
         if (
-            self.request.profile.role != "ADMIN"
-            and not self.request.user.is_superuser
-            and self.request.profile.id != profile.id
+                self.request.profile.role != "ADMIN"
+                and not self.request.user.is_superuser
+                and self.request.profile.id != profile.id
         ):
             return Response(
                 {"error": True, "errors": "Permission Denied"},
@@ -303,7 +300,7 @@ class UserDetailView(APIView):
         )
 
     @extend_schema(
-        tags=["users"],parameters=swagger_params1.organization_params
+        tags=["users"], parameters=swagger_params1.organization_params
     )
     def delete(self, request, pk, format=None):
         if self.request.profile.role != "ADMIN" and not self.request.profile.is_admin:
@@ -328,7 +325,6 @@ class UserDetailView(APIView):
 
 # check_header not working
 class ApiHomeView(APIView):
-
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(parameters=swagger_params1.organization_params)
@@ -369,7 +365,7 @@ class ApiHomeView(APIView):
 
 
 class OrgProfileCreateView(APIView):
-    #authentication_classes = (CustomDualAuthentication,)
+    # authentication_classes = (CustomDualAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     model1 = Org
@@ -440,8 +436,9 @@ class ProfileView(APIView):
         context["user_obj"] = ProfileSerializer(self.request.profile).data
         return Response(context, status=status.HTTP_200_OK)
 
+
 class DocumentListView(APIView, LimitOffsetPagination):
-    #authentication_classes = (CustomDualAuthentication,)
+    # authentication_classes = (CustomDualAuthentication,)
     permission_classes = (IsAuthenticated,)
     model = Document
 
@@ -482,9 +479,9 @@ class DocumentListView(APIView, LimitOffsetPagination):
             profiles = profile_list.filter(role="ADMIN").order_by("user__email")
         search = False
         if (
-            params.get("document_file")
-            or params.get("status")
-            or params.get("shared_to")
+                params.get("document_file")
+                or params.get("status")
+                or params.get("shared_to")
         ):
             search = True
         context["search"] = search
@@ -541,7 +538,7 @@ class DocumentListView(APIView, LimitOffsetPagination):
         return Response(context)
 
     @extend_schema(
-        tags=["documents"], parameters=swagger_params1.organization_params,request=DocumentCreateSwaggerSerializer
+        tags=["documents"], parameters=swagger_params1.organization_params, request=DocumentCreateSwaggerSerializer
     )
     def post(self, request, *args, **kwargs):
         params = request.data
@@ -576,7 +573,7 @@ class DocumentListView(APIView, LimitOffsetPagination):
 
 
 class DocumentDetailView(APIView):
-    #authentication_classes = (CustomDualAuthentication,)
+    # authentication_classes = (CustomDualAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_object(self, pk):
@@ -599,8 +596,8 @@ class DocumentDetailView(APIView):
             )
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
             if not (
-                (self.request.profile == self.object.created_by)
-                or (self.request.profile in self.object.shared_to.all())
+                    (self.request.profile == self.object.created_by)
+                    or (self.request.profile in self.object.shared_to.all())
             ):
                 return Response(
                     {
@@ -642,7 +639,7 @@ class DocumentDetailView(APIView):
 
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
             if (
-                self.request.profile != document.created_by
+                    self.request.profile != document.created_by
             ):  # or (self.request.profile not in document.shared_to.all()):
                 return Response(
                     {
@@ -657,9 +654,8 @@ class DocumentDetailView(APIView):
             status=status.HTTP_200_OK,
         )
 
-    
     @extend_schema(
-        tags=["documents"], parameters=swagger_params1.organization_params,request=DocumentEditSwaggerSerializer
+        tags=["documents"], parameters=swagger_params1.organization_params, request=DocumentEditSwaggerSerializer
     )
     def put(self, request, pk, format=None):
         self.object = self.get_object(pk)
@@ -676,8 +672,8 @@ class DocumentDetailView(APIView):
             )
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
             if not (
-                (self.request.profile == self.object.created_by)
-                or (self.request.profile in self.object.shared_to.all())
+                    (self.request.profile == self.object.created_by)
+                    or (self.request.profile in self.object.shared_to.all())
             ):
                 return Response(
                     {
@@ -724,7 +720,8 @@ class UserStatusView(APIView):
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(
-        description="User Status View",parameters=swagger_params1.organization_params, request=UserUpdateStatusSwaggerSerializer
+        description="User Status View", parameters=swagger_params1.organization_params,
+        request=UserUpdateStatusSwaggerSerializer
     )
     def post(self, request, pk, format=None):
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
@@ -767,7 +764,7 @@ class DomainList(APIView):
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(
-        tags=["Settings"],parameters=swagger_params1.organization_params
+        tags=["Settings"], parameters=swagger_params1.organization_params
     )
     def get(self, request, *args, **kwargs):
         api_settings = APISettings.objects.filter(org=request.profile.org)
@@ -784,7 +781,7 @@ class DomainList(APIView):
         )
 
     @extend_schema(
-        tags=["Settings"],parameters=swagger_params1.organization_params, request=APISettingsSwaggerSerializer
+        tags=["Settings"], parameters=swagger_params1.organization_params, request=APISettingsSwaggerSerializer
     )
     def post(self, request, *args, **kwargs):
         params = request.data
@@ -815,11 +812,11 @@ class DomainList(APIView):
 
 class DomainDetailView(APIView):
     model = APISettings
-    #authentication_classes = (CustomDualAuthentication,)
+    # authentication_classes = (CustomDualAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(
-        tags=["Settings"],parameters=swagger_params1.organization_params
+        tags=["Settings"], parameters=swagger_params1.organization_params
     )
     def get(self, request, pk, format=None):
         api_setting = self.get_object(pk)
@@ -829,7 +826,7 @@ class DomainDetailView(APIView):
         )
 
     @extend_schema(
-        tags=["Settings"],parameters=swagger_params1.organization_params, request=APISettingsSwaggerSerializer
+        tags=["Settings"], parameters=swagger_params1.organization_params, request=APISettingsSwaggerSerializer
     )
     def put(self, request, pk, **kwargs):
         api_setting = self.get_object(pk)
@@ -861,7 +858,7 @@ class DomainDetailView(APIView):
         )
 
     @extend_schema(
-        tags=["Settings"],parameters=swagger_params1.organization_params
+        tags=["Settings"], parameters=swagger_params1.organization_params
     )
     def delete(self, request, pk, **kwargs):
         api_setting = self.get_object(pk)
@@ -872,6 +869,7 @@ class DomainDetailView(APIView):
             status=status.HTTP_200_OK,
         )
 
+
 class GoogleLoginView(APIView):
     """
     Check for authentication with google
@@ -879,9 +877,8 @@ class GoogleLoginView(APIView):
         Returns token of logged In user
     """
 
-
     @extend_schema(
-        description="Login through Google",  request=SocialLoginSerializer,
+        description="Login through Google", request=SocialLoginSerializer,
     )
     def post(self, request):
         payload = {'access_token': request.data.get("token")}  # validate the token
@@ -909,3 +906,43 @@ class GoogleLoginView(APIView):
         response['refresh_token'] = str(token)
         response['user_id'] = user.id
         return Response(response)
+    
+class ValidateTokenView(APIView):
+    def post(self, request):
+        token = request.data.get("token")
+        # Fetch the profile associated with the token
+        user = get_object_or_404(User, activation_key=token)
+        # Check if the token has expired
+        if user.key_expires < timezone.now():
+            return Response({"error": True, "message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
+        # Token is valid
+        return Response({"error": False, "message": "Token is valid"}, status=status.HTTP_200_OK)
+
+
+class PasswordSetupView(APIView):
+    def post(self, request):
+        token = request.data.get("token")
+        new_password = request.data.get("password")
+        # Fetch profile by token
+        user = get_object_or_404(user, activation_key=token)
+        # Confirm token is still valid
+        if user.key_expires < timezone.now():
+            return Response({"error": True, "message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
+        # Set the new password for the user and activate the account
+        user.password = make_password(new_password)  # Set hashed password
+        user.is_active = True  # Activate the user
+        user.save()
+        # Invalidate the token
+        user.activation_key = None
+        user.key_expires = None
+        user.save()
+ 
+        # Generate or retrieve a token for the user
+        token = Token.objects.get_or_create(user=user)
+ 
+        # Return the token to the frontend
+        return Response({
+            "error": False,
+            "message": "Password set successfully",
+            "token": token.key  # Send the token key to the React app
+        }, status=status.HTTP_200_OK)
