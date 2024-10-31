@@ -7,7 +7,7 @@ import imgLogo from '../../assets/images/auth/img_logo.png'
 import imgLogin from '../../assets/images/auth/img_login.png'
 import { GoogleButton } from '../../styles/CssStyled';
 import { fetchData } from '../../components/FetchData';
-import { AuthUrl, LoginUrl, RegisterUrl } from '../../services/ApiUrls';
+import { AuthUrl, LoginUrl } from '../../services/ApiUrls';
 import '../../styles/style.css'
 
 declare global {
@@ -20,7 +20,6 @@ declare global {
 export default function Login() {
     const navigate = useNavigate()
     const [token, setToken] = useState(false)
-    const [isRegistering, setIsRegistering] = useState(false); // State to toggle between login and registration forms
     const [name, setName] = useState(''); // State for user name
     const [email, setEmail] = useState(''); // State for email
     const [password, setPassword] = useState(''); // State for password
@@ -52,10 +51,6 @@ export default function Login() {
         },
 
     });
-    // Toggle between login and registration forms
-    const handleRegisterToggle = () => {
-        setIsRegistering(!isRegistering);
-    };
 
     // Handle email/password login
     const handleLogin = async () => {
@@ -81,25 +76,7 @@ export default function Login() {
         }
     };
 
-    // Handle user registration
-    const handleRegister = async () => {
-        try {
-            const res = await fetchData(
-                `${RegisterUrl}/`,
-                'POST',
-                JSON.stringify({ email, password }) // Sending email and password for registration
-            );
 
-            if (res.message) {
-                alert('Registration successful! You can now log in.');
-                setIsRegistering(false); // Switch back to login form
-            } else {
-                console.error('Registration failed:', res);
-            }
-        } catch (error) {
-            console.error('Error during registration:', error);
-        }
-    };
     return (
         <div>
             <Stack
@@ -161,89 +138,41 @@ export default function Login() {
                                 </Grid>
                             </Grid> */}
                         </Grid>
-                        {/* Combined Login and Registration Form */}
+                        {/* Login Form */}
                         <Grid container item sx={{ mt: 4, width: '100%' }} direction="column" alignItems="center">
                             <Typography variant="body2" sx={{ mb: 1 }}>
                                 Or you can login with your email and password.
                             </Typography>
                             {/* Login Form */}
-                            {!isRegistering && (
-                                <Stack spacing={2} sx={{ width: '100%' }}>
-                                    <TextField
-                                        label="Email"
-                                        variant="outlined"
-                                        size="small" // Set size to small
-                                        fullWidth
-                                        onChange={(e) => setEmail(e.target.value)} // Capture email
-                                    />
-                                    <TextField
-                                        label="Password"
-                                        type="password"
-                                        variant="outlined"
-                                        size="small" // Set size to small
-                                        fullWidth
-                                        onChange={(e) => setPassword(e.target.value)} // Capture password
-                                    />
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        fullWidth
-                                        onClick={handleLogin} // Trigger login
-                                        sx={{ mt: 2, backgroundColor: '#3e4b68', '&:hover': { backgroundColor: '#2d3748' }}}
-                                    >
-                                        Login
-                                    </Button>
-                                    <Typography variant="body2" sx={{ mt: 1 }}>
-                                        Don't have an account?{' '}
-                                        <Button onClick={handleRegisterToggle} sx={{ p: 0 }}>
-                                            Register
-                                        </Button>
-                                    </Typography>
-                                </Stack>
-                            )}
-
-                            {/* Registration Form */}
-                            {isRegistering && (
-                                <Stack spacing={2} sx={{ width: '100%' }}>
-                                    <TextField
-                                        label="Name"
-                                        variant="outlined"
-                                        size="small" // Set size to small
-                                        fullWidth
-                                        onChange={(e) => setName(e.target.value)} // Capture name
-                                    />
-                                    <TextField
-                                        label="Email"
-                                        variant="outlined"
-                                        size="small" // Set size to small
-                                        fullWidth
-                                        onChange={(e) => setEmail(e.target.value)} // Capture email
-                                    />
-                                    <TextField
-                                        label="Password"
-                                        type="password"
-                                        variant="outlined"
-                                        size="small" // Set size to small
-                                        fullWidth
-                                        onChange={(e) => setPassword(e.target.value)} // Capture password
-                                    />
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        fullWidth
-                                        onClick={handleRegister} // Trigger registration
-                                        sx={{ mt: 2, backgroundColor: '#3e4b68', '&:hover': { backgroundColor: '#2d3748' }}}
-                                    >
-                                        Register
-                                    </Button>
-                                    <Typography variant="body2" sx={{ mt: 1 }}>
-                                        Already have an account?{' '}
-                                        <Button onClick={handleRegisterToggle} sx={{ p: 0 }}>
-                                            Login
-                                        </Button>
-                                    </Typography>
-                                </Stack>
-                            )}
+                            
+                            <Stack spacing={2} sx={{ width: '100%' }}>
+                                <TextField
+                                    label="Email"
+                                    variant="outlined"
+                                    size="small" // Set size to small
+                                    fullWidth
+                                    onChange={(e) => setEmail(e.target.value)} // Capture email
+                                />
+                                <TextField
+                                    label="Password"
+                                    type="password"
+                                    variant="outlined"
+                                    size="small" // Set size to small
+                                    fullWidth
+                                    onChange={(e) => setPassword(e.target.value)} // Capture password
+                                />
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    fullWidth
+                                    onClick={handleLogin} // Trigger login
+                                    sx={{ mt: 2, backgroundColor: '#3e4b68', '&:hover': { backgroundColor: '#2d3748' }}}
+                                >
+                                    Login
+                                </Button>
+                                
+                            </Stack>
+                                                     
                         </Grid>
                     </Grid>
                 </Grid>
