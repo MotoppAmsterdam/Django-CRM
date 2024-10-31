@@ -407,23 +407,26 @@ class UserDetailView(APIView):
         tags=["users"], parameters=swagger_params1.organization_params
     )
     def delete(self, request, pk, format=None):
-        if self.request.profile.role != "ADMIN" and not self.request.profile.is_admin:
+        profile = self.get_object(pk)
+
+        if (request.profile.role != "ADMIN"
+                and not request.user.is_superuser
+                and request.profile.id != profile.id):
             return Response(
-                {"error": True, "errors": "Permission Denied"},
-                status=status.HTTP_403_FORBIDDEN,
+                {
+                    "error": True,
+                    "errors": "Permission Denied"
+                },
+                status=status.HTTP_403_FORBIDDEN
             )
-        self.object = self.get_object(pk)
-        if self.object.id == request.profile.id:
-            return Response(
-                {"error": True, "errors": "Permission Denied"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        deleted_by = self.request.profile.user.email
-        send_email_user_delete.delay(
-            self.object.user.email,
-            deleted_by=deleted_by,
-        )
-        self.object.delete()
+        # deleted_by = request.profile.user.email
+        # send_email_user_delete(
+        #     profile.user.email,
+        #     deleted_by=deleted_by
+        # )
+        user = profile.user
+        profile.delete()
+        user.delete()
         return Response({"status": "success"}, status=status.HTTP_200_OK)
 
 
