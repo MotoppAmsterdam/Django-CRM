@@ -63,57 +63,7 @@ from opportunity.models import Opportunity
 from opportunity.serializer import OpportunitySerializer
 from teams.models import Teams
 from teams.serializer import TeamsSerializer
-import logging
 
-# Set up logging
-logger = logging.getLogger(__name__)
-
-class UserRegistrationView(APIView):
-    """
-    User Registration View
-    """
-    
-    def post(self, request):
-        serializer = CreateUserSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            # Optionally create a profile here
-            Profile.objects.create(user=user)  # Create profile for the new user
-            logger.info("User registered successfully: %s", user.email)
-            return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
-        
-        logger.warning("User registration failed: %s", serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class UserLoginView(APIView):
-    """
-    User Login View
-    """
-    
-    def post(self, request):
-        email = request.data.get("email")
-        password = request.data.get("password")
-
-        # Check if email and password are provided
-        if not email or not password:
-            logger.warning("Email or password not provided")
-            return Response({"error": "Email and password are required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Authenticate user
-        user = authenticate(request, email=email, password=password)
-        if user is not None:
-            # Generate token for authenticated user
-            refresh = RefreshToken.for_user(user)
-            logger.info("User logged in successfully: %s", email)
-            return Response({
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-                "user_id": user.id,
-            }, status=status.HTTP_200_OK)
-
-        logger.error("Invalid credentials for user: %s", email)  # Log invalid login attempt
-        return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 class GetTeamsAndUsersView(APIView):
 
