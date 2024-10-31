@@ -395,4 +395,7 @@ class UserUpdateStatusSwaggerSerializer(serializers.Serializer):
 
     status = serializers.ChoiceField(choices = STATUS_CHOICES,required=True)
 
+class PasswordSetupSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+
 
