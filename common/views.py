@@ -66,7 +66,6 @@ from teams.serializer import TeamsSerializer
 
 
 class GetTeamsAndUsersView(APIView):
-
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(tags=["users"], parameters=swagger_params1.organization_params)
@@ -74,7 +73,7 @@ class GetTeamsAndUsersView(APIView):
         data = {}
         teams = Teams.objects.filter(org=request.profile.org).order_by("-id")
         teams_data = TeamsSerializer(teams, many=True).data
-        profiles = Profile.objects.filter(is_active=True, org=request.profile.org).order_by(
+        profiles = Profile.objects.filter(is_active=False, org=request.profile.org).order_by(
             "user__email"
         )
         profiles_data = ProfileSerializer(profiles, many=True).data
@@ -84,7 +83,6 @@ class GetTeamsAndUsersView(APIView):
 
 
 class UsersListView(APIView, LimitOffsetPagination):
-
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(parameters=swagger_params1.organization_params, request=UserCreateSwaggerSerializer)
@@ -117,7 +115,7 @@ class UsersListView(APIView, LimitOffsetPagination):
                 if address_serializer.is_valid():
                     address_obj = address_serializer.save()
                     user = user_serializer.save(
-                        is_active=True,
+                        is_active=False,
                     )
                     user.email = user.email
                     user.set_password("123")
@@ -133,10 +131,9 @@ class UsersListView(APIView, LimitOffsetPagination):
                         org=request.profile.org,
                     )
 
-                    # send_email_to_new_user.delay(
-                    #     profile.id,
-                    #     request.profile.org.id,
-                    # )
+                    send_email_to_new_user(
+                        user.id
+                    )
                     return Response(
                         {"error": False, "message": "User Created Successfully"},
                         status=status.HTTP_201_CREATED,
@@ -214,45 +211,45 @@ class UserDetailView(APIView):
         profile = get_object_or_404(Profile, pk=pk)
         return profile
 
-    def fill_required_data(self, data, request):
+    def fill_required_data(self, data, profile):
         keys = data.keys()
         if "email" not in keys:
-            data["email"] = request.profile.user.email
+            data["email"] = profile.user.email
 
         if "role" not in keys:
-            data["role"] = request.profile.role
+            data["role"] = profile.role
 
         if "phone" not in keys:
-            data["phone"] = request.profile.phone
+            data["phone"] = profile.phone
 
         if "alternate_phone" not in keys:
-            data["alternate_phone"] = request.profile.alternate_phone
+            data["alternate_phone"] = profile.alternate_phone
 
         if "address_line" not in keys:
-            data["address_line"] = request.profile.address.address_line
+            data["address_line"] = profile.address.address_line
 
         if "street" not in keys:
-            data["street"] = request.profile.address.street
+            data["street"] = profile.address.street
 
         if "city" not in keys:
-            data["city"] = request.profile.address.city
+            data["city"] = profile.address.city
 
         if "state" not in keys:
-            data["address_line"] = request.profile.address.state
+            data["address_line"] = profile.address.state
 
         if "pincode" not in keys:
-            data["pincode"] = request.profile.address.postcode
+            data["pincode"] = profile.address.postcode
 
         if "country" not in keys:
-            data["country"] = request.profile.address.country
+            data["country"] = profile.address.country
 
     @extend_schema(tags=["users"], parameters=swagger_params1.organization_params)
     def get(self, request, pk, format=None):
         profile_obj = self.get_object(pk)
         if (
-            self.request.profile.role != "ADMIN"
-            and not self.request.profile.is_admin
-            and self.request.profile.id != profile_obj.id
+                self.request.profile.role != "ADMIN"
+                and not self.request.profile.is_admin
+                and self.request.profile.id != profile_obj.id
         ):
             return Response(
                 {"error": True, "errors": "Permission Denied"},
@@ -291,9 +288,9 @@ class UserDetailView(APIView):
         profile = self.get_object(pk)
         address_obj = profile.address
         if (
-            self.request.profile.role != "ADMIN"
-            and not self.request.user.is_superuser
-            and self.request.profile.id != profile.id
+                self.request.profile.role != "ADMIN"
+                and not self.request.user.is_superuser
+                and self.request.profile.id != profile.id
         ):
             return Response(
                 {"error": True, "errors": "Permission Denied"},
@@ -366,7 +363,7 @@ class UserDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        self.fill_required_data(params, request)
+        self.fill_required_data(params, profile)
 
         serializer = CreateUserSerializer(
             data=params, instance=profile.user, org=request.profile.org
@@ -409,29 +406,31 @@ class UserDetailView(APIView):
         tags=["users"], parameters=swagger_params1.organization_params
     )
     def delete(self, request, pk, format=None):
-        if self.request.profile.role != "ADMIN" and not self.request.profile.is_admin:
+        profile = self.get_object(pk)
+
+        if (request.profile.role != "ADMIN"
+                and not request.user.is_superuser
+                and request.profile.id != profile.id):
             return Response(
-                {"error": True, "errors": "Permission Denied"},
-                status=status.HTTP_403_FORBIDDEN,
+                {
+                    "error": True,
+                    "errors": "Permission Denied"
+                },
+                status=status.HTTP_403_FORBIDDEN
             )
-        self.object = self.get_object(pk)
-        if self.object.id == request.profile.id:
-            return Response(
-                {"error": True, "errors": "Permission Denied"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        deleted_by = self.request.profile.user.email
-        send_email_user_delete.delay(
-            self.object.user.email,
-            deleted_by=deleted_by,
-        )
-        self.object.delete()
+        # deleted_by = request.profile.user.email
+        # send_email_user_delete(
+        #     profile.user.email,
+        #     deleted_by=deleted_by
+        # )
+        user = profile.user
+        profile.delete()
+        user.delete()
         return Response({"status": "success"}, status=status.HTTP_200_OK)
 
 
 # check_header not working
 class ApiHomeView(APIView):
-
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(parameters=swagger_params1.organization_params)
@@ -632,9 +631,9 @@ class DocumentListView(APIView, LimitOffsetPagination):
                 role="ADMIN").order_by("user__email")
         search = False
         if (
-            params.get("document_file")
-            or params.get("status")
-            or params.get("shared_to")
+                params.get("document_file")
+                or params.get("status")
+                or params.get("shared_to")
         ):
             search = True
         context["search"] = search
@@ -751,8 +750,8 @@ class DocumentDetailView(APIView):
             )
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
             if not (
-                (self.request.profile == self.object.created_by)
-                or (self.request.profile in self.object.shared_to.all())
+                    (self.request.profile == self.object.created_by)
+                    or (self.request.profile in self.object.shared_to.all())
             ):
                 return Response(
                     {
@@ -795,7 +794,7 @@ class DocumentDetailView(APIView):
 
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
             if (
-                self.request.profile != document.created_by
+                    self.request.profile != document.created_by
             ):  # or (self.request.profile not in document.shared_to.all()):
                 return Response(
                     {
@@ -828,8 +827,8 @@ class DocumentDetailView(APIView):
             )
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
             if not (
-                (self.request.profile == self.object.created_by)
-                or (self.request.profile in self.object.shared_to.all())
+                    (self.request.profile == self.object.created_by)
+                    or (self.request.profile in self.object.shared_to.all())
             ):
                 return Response(
                     {
@@ -877,7 +876,8 @@ class UserStatusView(APIView):
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(
-        description="User Status View", parameters=swagger_params1.organization_params, request=UserUpdateStatusSwaggerSerializer
+        description="User Status View", parameters=swagger_params1.organization_params,
+        request=UserUpdateStatusSwaggerSerializer
     )
     def post(self, request, pk, format=None):
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
@@ -1037,7 +1037,7 @@ class GoogleLoginView(APIView):
     """
 
     @extend_schema(
-        description="Login through Google",  request=SocialLoginSerializer,
+        description="Login through Google", request=SocialLoginSerializer,
     )
     def post(self, request):
         payload = {'access_token': request.data.get(
@@ -1076,3 +1076,55 @@ class GoogleLoginView(APIView):
         response['refresh_token'] = str(token)
         response['user_id'] = user.id
         return Response(response)
+
+
+class ValidateTokenView(APIView):
+    def post(self, request, activation_key):
+        user = get_object_or_404(User, activation_key=activation_key)
+        # Check if the token has expired
+        if user.key_expires < timezone.now():
+            return Response({"error": True, "message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
+        # Token is valid
+        return Response({"error": False, "message": "Token is valid", "token": activation_key}, status=status.HTTP_200_OK)
+
+
+@extend_schema(request=PasswordSetupSerializer)
+class PasswordSetupView(APIView):
+    def post(self, request, activation_key):
+        # Validate the incoming request data
+        serializer = PasswordSetupSerializer(data=request.data)
+        if serializer.is_valid():  # If data is valid
+            # Access the validated password
+            new_password = serializer.validated_data['password']
+
+            # Fetch the user by activation_key
+            user = get_object_or_404(User, activation_key=activation_key)
+
+            # Confirm token is still valid
+            if user.key_expires < timezone.now():
+                return Response({"error": True, "message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Set the new password for the user and activate the account
+            user.password = make_password(new_password)  # Set hashed password
+            user.is_active = True  # Activate the user
+            user.save()
+
+            # Invalidate the token
+            user.activation_key = None
+            user.key_expires = None
+            user.save()
+
+            # Create JWT tokens for the user
+            refresh = RefreshToken.for_user(user)
+
+            # Return the tokens to the frontend
+            return Response({
+                "error": False,
+                "message": "Password set successfully",
+                "refresh": str(refresh),
+                # This is the access token
+                "access": str(refresh.access_token),
+            }, status=status.HTTP_200_OK)
+
+        # If validation fails, return the errors
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
