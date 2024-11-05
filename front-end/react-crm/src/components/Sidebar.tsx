@@ -39,6 +39,7 @@ import logo from '../assets/images/auth/img_logo.png';
 import { StyledListItemButton, StyledListItemText } from '../styles/CssStyled';
 // import MyContext, { MyContextData } from '../context/Context';
 import MyContext from '../context/Context';
+import Settings from './Settings';
 
 // declare global {
 //     interface Window {
@@ -90,9 +91,10 @@ export default function Sidebar(props: any) {
             setScreen('users')
         } else if (location.pathname.split('/')[2] === 'cases') {
             setScreen('cases')
+        } else if (location.pathname.split('/')[2] === 'settings') {
+            setScreen('settings');
         }
     }
-
     // useEffect(() => {
     //     userProfile()
     // }, [])
@@ -110,7 +112,7 @@ export default function Sidebar(props: any) {
             })
     }
 
-    const navList = ['leads', 'contacts', 'opportunities', 'accounts', 'companies', 'users', 'cases']
+    const navList = ['leads', 'contacts', 'opportunities', 'accounts', 'companies', 'users', 'cases', 'settings']
     const navIcons = (text: any, screen: any): React.ReactNode => {
         switch (text) {
             case 'leads':
@@ -129,6 +131,8 @@ export default function Sidebar(props: any) {
                 return screen === 'users' ? <FaUserFriends fill='#3e79f7' /> : <FaUserFriends />
             case 'cases':
                 return screen === 'cases' ? <FaBriefcase fill='#3e79f7' /> : <FaBriefcase />
+            case 'settings': // New case for Organization Settings
+                return screen === 'settings' ? <FaCog fill='#3e79f7' /> : <FaCog />;
             default: return <FaDiceD6 fill='#3e79f7' />
         }
     }
@@ -303,6 +307,7 @@ export default function Sidebar(props: any) {
                             <Route path='/app/cases/add-case' element={<AddCase />} />
                             <Route path='/app/cases/edit-case' element={<EditCase />} />
                             <Route path='/app/cases/case-details' element={<CaseDetails />} />
+                            <Route path="/app/settings" element={<Settings />} />
                         </Routes>
                     </Box>
                 </MyContext.Provider>
@@ -315,4 +320,3 @@ export default function Sidebar(props: any) {
 
     )
 }
-

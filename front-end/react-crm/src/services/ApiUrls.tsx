@@ -1,7 +1,8 @@
 // authurl
 export const SERVER = process.env.REACT_APP_API_BASE_URL
-export const LoginUrl = 'auth/login'
-export const RegisterUrl = 'auth/register'
+export const LoginUrl = '/api/api/token/'
+// export const LoginUrl = 'auth/login'
+// export const RegisterUrl = 'auth/register'
 export const ForgotPasswordUrl = 'auth/forgot-password'
 
 export const AuthUrl = '/api/auth/google'
@@ -28,3 +29,4 @@ export const UserUrl = '/api/user'
 // PROFILE
 export const ProfileUrl = '/api/profile'
 // 
+export const OrgAuthUrl = '/api/organization/google-auth'
