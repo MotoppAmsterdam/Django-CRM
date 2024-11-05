@@ -4,6 +4,7 @@ export const LoginUrl = '/api/api/token/'
 // export const LoginUrl = 'auth/login'
 // export const RegisterUrl = 'auth/register'
 export const ForgotPasswordUrl = 'auth/forgot-password'
+export const SetPasswordUrl = '/set-password' // New Set Password URL
 
 export const AuthUrl = '/api/auth/google'
 // org
