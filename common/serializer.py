@@ -1,4 +1,10 @@
+from asyncore import write
+from dataclasses import field
+from email.message import EmailMessage
+from importlib.metadata import requires
 import re
+from wsgiref import validate
+from xml.dom import ValidationErr
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password
@@ -6,6 +12,9 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
+from django.contrib.auth.password_validation import validate_password
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 from common.models import (
     Address,
@@ -414,3 +423,61 @@ class PasswordSetupSerializer(serializers.Serializer):
 
 
 
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_password]
+    )
+    
+    password2 = serializers.CharField(
+        write_only=True,
+        required=True,
+        label="Confirm Password"
+    )
+
+    class Meta:
+        model = User
+        fields = ("email", "password", "password2")
+        
+    def validate_email(self, email):
+        try:
+            validate_email(email)
+        except ValidationError:
+            raise serializers.ValidationError("Invalid e-mail format.")
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError("This e-mail is already registered")
+        return email
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError(
+                {"password": "Password fields didn't match."}
+            )
+        # MILAD'S CODE GOES HERE ... !    
+        # if not re.search(r"[A-Z]", attrs['password']):
+        #     raise ValidationError(
+        #         "Password must contain at least one uppercase letter.") 
+        # if not re.search(r"[a-z]", attrs['password']):
+        #     raise ValidationError(
+        #         "Password must contain at least one lowercase letter.")
+        # if not re.search(r"\d", attrs['password']):
+        #     raise ValidationError("Password must contain at least one digit.")
+        # if not re.search(r"[@$!%*?&.]", attrs['password']):
+        #     raise ValidationError(
+        #         "Password must contain at least one special character (@, $, !, %, *, ?, &, .).")
+        return attrs
+    
+    def create(self, validated_data):
+        email = validated_data['email'].lower()
+        password = validated_data['password']
+        
+    # Create the user but no activate it yet
+        user = User.objects.create(
+            email=email,
+            is_active=False # User will be inactive until email is verified.
+        )    
+        user.set_password(password)
+        user.save()
+        return user
