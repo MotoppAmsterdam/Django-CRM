@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { SetPasswordUrl, SERVER } from '../../services/ApiUrls';
+import imgLogo from '../../assets/images/auth/img_logo.png'
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+
 
 const SetPassword = () => {
     const [password, setPassword] = useState('');
@@ -7,6 +10,8 @@ const SetPassword = () => {
     const [strength, setStrength] = useState('');
     const [feedback, setFeedback] = useState('');
     const [error, setError] = useState('');
+    const [showModal, setShowModal] = useState(false); // Modal visibility state
+    const navigate = useNavigate(); // Initialize navigate
 
     // Function to validate password strength
     const validatePasswordStrength = (password: string) => {
@@ -41,51 +46,84 @@ const SetPassword = () => {
         }
           
         try {
-            const response = await fetch(`${SERVER}/${SetPasswordUrl}`, {
+            const response = await fetch(`${SERVER}${SetPasswordUrl}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ password }),
-            });
-
+            }); 
+            
             if (response.ok) {
-                alert('Password set successfully!');
-            } else {
+                setShowModal(true); // Show success modal
+            }  else {
                 setError('Failed to set password. Try again.');
+                setShowModal(true); // Show success modal
             }
         } catch (error) {
             setError('An error occurred.');
         }
+        
+    };
+
+    const closeModal = () => {
+        setShowModal(false);
+        setTimeout(() => navigate('/login')); // Redirect to login 
     };
 
     return (
         <div className="set-password-container">
-            <h2>Set Your Password</h2>
+            <div className="imgLogo">
+                <img src={imgLogo} alt='register_logo' className='register-logo' /> 
+                <h2>Create a password</h2>
+            </div>
+           
+
             <form onSubmit={handleSubmit}>
-                <label>
-                    New Password
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={handlePasswordChange}
-                        required
-                    />
-                </label>
+            <input 
+            className="passfield"
+            type="password"
+            value={password}
+            onChange={handlePasswordChange}
+            placeholder="New password"
+            required
+        />
                 <p>{feedback}</p>
-                <label>
-                    Confirm Password
+               
                     <input
+                        className="passfield"
                         type="password"
                         value={confirmPassword}
                         onChange={handleConfirmPasswordChange}
+                        placeholder="Confirm new password"
                         required
                     />
-                </label>
+                
                 {error && <p className="error">{error}</p>}
-                <button type="submit">Save Password</button>
+
+                <div>
+                    <ul>
+                        <li>At least 8 characters</li>
+                        <li>No more than 128 characters</li>
+                        <li>At least one uppercase and one lowercase letter</li>
+                        <li>Latin or Cyrillic letters only</li>
+                        <li>At least one numeral</li>
+                        <li>No spaces</li>
+                        <li>Valid characters: ~ ! ? @ # $ % ^ & * _ - + ( ) [ ] { }  &lt; </li>
+                    </ul>
+                 </div>
+                <button type="submit">Subbmit</button>
             </form>
             <p>Password Strength: <strong>{strength}</strong></p>
+            {showModal && (
+                <div className="modal">
+                    <div className="modal-content">
+                        <h2>Thank you!</h2>
+                        <p>Your password is saved, now you can login to your account!</p>
+                        <button onClick={closeModal}>Close</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
