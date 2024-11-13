@@ -10,7 +10,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.utils import json
 from django.conf import settings
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.db.models import Q
 from django.http.response import JsonResponse
@@ -64,7 +63,6 @@ from opportunity.serializer import OpportunitySerializer
 from teams.models import Teams
 from teams.serializer import TeamsSerializer
 from django.core.exceptions import ObjectDoesNotExist
-
 
 class GetTeamsAndUsersView(APIView):
     permission_classes = (IsAuthenticated,)

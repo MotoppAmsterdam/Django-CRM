@@ -36,7 +36,9 @@ def send_email_to_new_user(user_id):
         user_obj.key_expires = expiration_time
         user_obj.save()
 
-        context["complete_url"] = f"{context['url']}/auth/validate-token/?token={activation_key}"
+        
+        # context["complete_url"] = f"{context['url']}/auth/validate-token/?token={activation_key}"
+        context["complete_url"] = f"{context['url']}/auth/password-setup/{activation_key}"
         recipients = [
             user_email,
         ]
