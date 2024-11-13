@@ -63,6 +63,7 @@ from opportunity.models import Opportunity
 from opportunity.serializer import OpportunitySerializer
 from teams.models import Teams
 from teams.serializer import TeamsSerializer
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class GetTeamsAndUsersView(APIView):
@@ -1128,3 +1129,55 @@ class PasswordSetupView(APIView):
 
         # If validation fails, return the errors
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@extend_schema(request=UserRegistrationSerializer)
+class UserRegistrationView(APIView):
+    def post(self, request):
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            user.is_active = False
+            user.save()
+            try:
+                send_email_to_new_user(user.id)
+            except Exception as e:
+                user.delete()
+                return Response({"error": "Failed to send verification email. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": "User registered successfully. Please verify your email."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class VerifyEmailForRegistrationView(APIView):
+    def get(self, request, activation_key):
+        if not activation_key:
+            return Response({"error": True, "message": "Activation key is missing"}, status=status.HTTP_400_BAD_REQUEST)
+ 
+        try:
+            user = get_object_or_404(User, activation_key=activation_key)
+        except ObjectDoesNotExist:
+            return Response({"error": True, "message": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": True, "message": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+ 
+        if user.key_expires < timezone.now():
+            return Response({"error": True, "message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
+ 
+        user.is_active = True
+        user.activation_key = None
+        user.key_expires = None
+        user.save()
+ 
+        refresh = RefreshToken.for_user(user)
+        tokens = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+ 
+        return Response(
+            {
+                "message": "Email verified successfully",
+                "access_token": tokens['access'],
+                "refresh_token": tokens['refresh'],
+                "user_id": user.id,
+            },
+            status=status.HTTP_200_OK
+        )

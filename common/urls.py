@@ -30,5 +30,11 @@ urlpatterns = [
          views.OrganizationGoogleAuthView.as_view()),
     path('auth/validate-token/<str:activation_key>/', views.ValidateTokenView.as_view()),
     path('auth/password-setup/<str:activation_key>/', views.PasswordSetupView.as_view()),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair')
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/register-user/', views.UserRegistrationView.as_view(),
+        name='user-registration'),
+    path('auth/verify-email/<str:activation_key>/', views.VerifyEmailForRegistrationView.as_view(),
+        name='verify-email'),
+ 
 ]
+
