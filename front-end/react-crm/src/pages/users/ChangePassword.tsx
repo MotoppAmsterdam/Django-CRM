@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { SetPasswordUrl, SERVER } from '../../services/ApiUrls';
 import imgLogo from '../../assets/images/auth/img_logo.png'
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate, useParams  } from 'react-router-dom'; // Import useNavigate
+
+
 
 
 const SetPassword = () => {
@@ -12,6 +14,7 @@ const SetPassword = () => {
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false); // Modal visibility state
     const navigate = useNavigate(); // Initialize navigate
+    const {activation_key} = useParams(); // Get activationKey
 
     // Function to validate password strength
     const validatePasswordStrength = (password: string) => {
@@ -46,14 +49,13 @@ const SetPassword = () => {
         }
           
         try {
-            const response = await fetch(`${SERVER}${SetPasswordUrl}`, {
+            const response = await fetch(`${SERVER}${SetPasswordUrl}/${activation_key}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ password }),
             }); 
-            
             if (response.ok) {
                 setShowModal(true); // Show success modal
             }  else {
@@ -63,7 +65,7 @@ const SetPassword = () => {
         } catch (error) {
             setError('An error occurred.');
         }
-        
+       
     };
 
     const closeModal = () => {
