@@ -26,7 +26,7 @@ const SetPassword = () => {
             setFeedback('Strong password.');
         } else {
             setStrength('Moderate');
-            setFeedback('Consider adding uppercase letters, numbers, and symbols for a stronger password.');
+            setFeedback('Use uppercase letters, numbers, and symbols for a stronger password.');
         }
     };
     
@@ -60,8 +60,7 @@ const SetPassword = () => {
                 setShowModal(true); // Show success modal
             }  else {
                 setError('Failed to set password. Try again.');
-                setShowModal(true); // Show success modal
-            }
+                    }
         } catch (error) {
             setError('An error occurred.');
         }
@@ -70,7 +69,7 @@ const SetPassword = () => {
 
     const closeModal = () => {
         setShowModal(false);
-        setTimeout(() => navigate('/login')); // Redirect to login 
+        setTimeout(() => navigate('/')); // Redirect to login 
     };
 
     return (
