@@ -42,6 +42,10 @@ services:
     environment:
       - REACT_APP_API_BASE_URL=http://localhost:8000 # Connects to the backend API
       - REACT_APP_CLIENT_ID=648453819089-qjodemb6e055k1n1cgjfdjuvi3fapuv1.apps.googleusercontent.com
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ../front-end/react-crm:/home/ubuntu/react-crm-v2.0/react-crm-v2.0
+      - /home/ubuntu/react-crm-v2.0/react-crm-v2.0/node_modules
     depends_on:
       - crm-app
     networks:
