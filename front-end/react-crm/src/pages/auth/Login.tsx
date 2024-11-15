@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Grid, Stack, Typography } from '@mui/material'
+import { Grid, Stack, Typography, Button } from '@mui/material'
 import { useGoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import imgGoogle from '../../assets/images/auth/google.svg'
@@ -10,6 +10,7 @@ import { fetchData } from '../../components/FetchData';
 import { AuthUrl } from '../../services/ApiUrls';
 import CustomAuth from './customAuth';
 import '../../styles/style.css'
+import SignUpPrompt from './SignupPrompt';
 
 declare global {
     interface Window {
@@ -73,7 +74,7 @@ export default function Login() {
                         </Grid>
                         <Typography variant='h5' style={{ fontWeight: 'bolder' }}>Sign In</Typography>
                         <CustomAuth />                
-                        <Grid item sx={{ mt: 4 }}>
+                        <Grid item>
                             
                             {/* <GoogleLogin
                                 onSuccess={credentialResponse => {
@@ -86,10 +87,40 @@ export default function Login() {
                             />
                             <Button onClick={signout}>logout</Button> */}
 
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                onClick={() => login()}
+                                fullWidth
+                                sx={{
+                                    mt: 2,
+                                    fontSize: '12px',
+                                    fontWeight: 500,
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    backgroundColor: '#fff',
+                                    borderColor: '#1976d2',
+                                    color: '#1976d2',
+                                    textTransform: 'none',
+                                    '&:hover': {
+                                        backgroundColor: 'D1DFFC',
+                                        borderColor: '#0f569c',
+                                    },
+                                }}
+                            >
+                                Sign in with Google
+                                <img src={imgGoogle} alt="google" style={{ width: '17px', marginLeft: '5px' }} />
+                            </Button>
+
+                            <SignUpPrompt />
+
+                            {/*
                             <GoogleButton variant='outlined' onClick={() => login()} sx={{ fontSize: '12px', fontWeight: 500 }}>
                                 Sign in with Google
                                 <img src={imgGoogle} alt='google' style={{ width: '17px', marginLeft: '5px' }} />
                             </GoogleButton>
+                            */}
                             {/* <Grid item sx={{ mt: 2, alignItems: 'center', alignContent: 'center' }}>
                                 <Grid item sx={{ mt: 1, ml: 6 }}>
                                     <div className='authentication_wrapper'>
