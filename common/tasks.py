@@ -17,7 +17,6 @@ app = Celery("redis://")
 
 @app.task
 def send_email_to_new_user(user_id):
-
     """Send Mail To Users When their account is created"""
     user_obj = User.objects.filter(id=user_id).first()
 
@@ -36,13 +35,47 @@ def send_email_to_new_user(user_id):
         user_obj.key_expires = expiration_time
         user_obj.save()
 
-        
-        # context["complete_url"] = f"{context['url']}/auth/validate-token/?token={activation_key}"
-        context["complete_url"] = f"{context['url']}/auth/password-setup/{activation_key}"
+        context["complete_url"] = f"{context['url']}/auth/validate-token/?token={activation_key}"
         recipients = [
             user_email,
         ]
         subject = "Welcome to Bottle CRM"
+        html_content = render_to_string("user_status_in.html", context=context)
+
+        msg = EmailMessage(
+            subject,
+            html_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=recipients,
+        )
+        msg.content_subtype = "html"
+        msg.send()
+
+@app.task
+def send_email_to_newly_added_user(user_id):
+    """Send mail to users when they are added from the admin to the organization"""
+    user_obj = User.objects.filter(id=user_id).first()
+
+    if user_obj:
+        context = {}
+        user_email = user_obj.email
+        context["url"] = settings.DOMAIN_NAME
+        context["token"] = account_activation_token.make_token(user_obj)
+        time_delta_two_hours = datetime.datetime.strftime(
+            timezone.now() + datetime.timedelta(hours=2), "%Y-%m-%d-%H-%M-%S"
+        )
+        # creating an activation token and saving it in user model
+        expiration_time = timezone.now() + datetime.timedelta(hours=2)
+        activation_key = context["token"] + time_delta_two_hours
+        user_obj.activation_key = activation_key
+        user_obj.key_expires = expiration_time
+        user_obj.save()
+
+        context["complete_url"] = f"{context['url']}/auth/password-setup/?token={activation_key}"
+        recipients = [
+            user_email,
+        ]
+        subject = "Invitation to the Organization"
         html_content = render_to_string("user_status_in.html", context=context)
 
         msg = EmailMessage(
@@ -109,10 +142,11 @@ def send_email_user_mentions(
         if recipients:
             for recipient in recipients:
                 recipients_list = [
-                    recipient,   
+                    recipient,
                 ]
                 context["mentioned_user"] = recipient
-                html_content = render_to_string("comment_email.html", context=context)
+                html_content = render_to_string(
+                    "comment_email.html", context=context)
                 msg = EmailMessage(
                     subject,
                     html_content,
@@ -177,7 +211,8 @@ def send_email_user_delete(
         recipients = []
         recipients.append(user_email)
         subject = "CRM : Your account is Deleted. "
-        html_content = render_to_string("user_delete_email.html", context=context)
+        html_content = render_to_string(
+            "user_delete_email.html", context=context)
         if recipients:
             msg = EmailMessage(
                 subject,

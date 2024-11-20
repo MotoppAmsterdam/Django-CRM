@@ -312,20 +312,20 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
-.imgLogo {
+.set-password-container .imgLogo {
     padding: 10px;
 }
-.register-logo {
+.set-password-container .register-logo {
     margin-bottom: -5%;
    }
 
-form label {
+.set-password-container form label {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
 }
 
-.passfield {
+.set-password-container .passfield {
     padding: 10px;
     width: 95%;
     height: 25px;
@@ -335,7 +335,7 @@ form label {
     border-radius: 10px;
 }
 
-button[type="submit"] {
+.set-password-container button[type="submit"] {
 width: 100%;
 height: 45px;
 cursor: pointer;
@@ -351,11 +351,11 @@ line-height: 29px;
 color: #FFFFFF;
 }
 
-button[type="submit"]:hover {
+.set-password-container button[type="submit"]:hover {
     background-color: #4e8de6;
 }
 
-.modal {
+.set-password-container .modal {
     height: 100%;
     display: flex;
     justify-content: center;
@@ -364,7 +364,7 @@ button[type="submit"]:hover {
 }
 
 
-.modal-content button {
+.set-password-container .modal-content button {
     width: 80%;
     height: 45px;
     background: #214e88;
@@ -380,18 +380,18 @@ button[type="submit"]:hover {
 
 }
 
-.modal-content button:hover {
+.set-password-container .modal-content button:hover {
     background-color: #4e8de6;
 }
 
-p.error {
+.set-password-container p.error {
     color: red;
 }
 
-p {
+.set-password-container p {
     font-size: 0.9rem;
 }
-ul {
+.set-password-container ul {
     list-style-type: disc;
     padding-left: 20px;
     color: #000000;

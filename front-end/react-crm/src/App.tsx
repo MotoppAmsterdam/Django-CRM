@@ -20,10 +20,7 @@ function App() {
           <Route path="*" element={<Home />} />
           <Route path="/app" element={<Home />} />
           <Route path='/login' element={<Login />} />
-          {/* <Route path="/api/auth/set-password" element={<SetPassword />} /> */}
-          <Route path="/auth/password-setup/:activation_key" element={<SetPassword />} />
-          
-
+          <Route path="/auth/password-setup" element={<SetPassword />} />
           {/* <Route path="/" element={<Navigate to="/contacts" replace />} /> */}
           {/* <Route
             path='/'

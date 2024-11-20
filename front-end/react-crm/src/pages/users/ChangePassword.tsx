@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
-import { SetPasswordUrl, SERVER } from '../../services/ApiUrls';
+import React, { useState, useEffect, useRef } from 'react';
+import { SetPasswordUrl, SERVER, ValidateTokenUrl } from '../../services/ApiUrls';
 import imgLogo from '../../assets/images/auth/img_logo.png'
-import { useNavigate, useParams  } from 'react-router-dom'; // Import useNavigate
-
-
-
+import { useNavigate, useLocation } from 'react-router-dom'; // Import useNavigate
 
 const SetPassword = () => {
     const [password, setPassword] = useState('');
@@ -13,8 +10,12 @@ const SetPassword = () => {
     const [feedback, setFeedback] = useState('');
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false); // Modal visibility state
+    const [isTokenValid, setIsTokenValid] = useState<null | boolean>(null); // Explicitly define type
     const navigate = useNavigate(); // Initialize navigate
-    const {activation_key} = useParams(); // Get activationKey
+    const hasRun = useRef(false);  // Ref to track if the effect has already run
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const activation_key = queryParams.get('token');
 
     // Function to validate password strength
     const validatePasswordStrength = (password: string) => {
@@ -29,25 +30,25 @@ const SetPassword = () => {
             setFeedback('Use uppercase letters, numbers, and symbols for a stronger password.');
         }
     };
-    
+
     // Update parameter types for event handlers
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newPass = e.target.value;
         setPassword(newPass);
         validatePasswordStrength(newPass);
     };
-    
+
     const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setConfirmPassword(e.target.value);
     };
-    
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (password !== confirmPassword) {
             setError("Passwords don't match.");
             return;
         }
-          
+
         try {
             const response = await fetch(`${SERVER}${SetPasswordUrl}/${activation_key}/`, {
                 method: 'POST',
@@ -55,16 +56,15 @@ const SetPassword = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ password }),
-            }); 
+            });
             if (response.ok) {
                 setShowModal(true); // Show success modal
-            }  else {
+            } else {
                 setError('Failed to set password. Try again.');
-                    }
+            }
         } catch (error) {
             setError('An error occurred.');
         }
-       
     };
 
     const closeModal = () => {
@@ -72,34 +72,72 @@ const SetPassword = () => {
         setTimeout(() => navigate('/')); // Redirect to login 
     };
 
+    // Validate token on component mount
+    useEffect(() => {
+        if (hasRun.current) return;  // Skip effect if it's already run
+        const validateToken = async () => {
+            try {
+                const response = await fetch(`${SERVER}${ValidateTokenUrl}/${activation_key}/`);
+                const data = await response.json();
+                if (response.ok && !data.error) {
+                    setIsTokenValid(true);
+                } else {
+                    setIsTokenValid(false);
+                    setError(data.message || 'Invalid or expired token.');
+                }
+            } catch (error) {
+                setIsTokenValid(false);
+                setError('An error occurred while validating the token.');
+            }
+        };
+
+        validateToken();
+        hasRun.current = true;  // Mark effect as run
+    }, [activation_key]);
+
+    // Render logic
+    if (isTokenValid === null) {
+        return <p>Loading...</p>; // Show a loading state while token validation is in progress
+    }
+
+    if (isTokenValid === false) {
+        return (
+            <div className="error-container">
+                <h2>Error</h2>
+                <p>{error}</p>
+                <button onClick={() => navigate('/')}>Back to Login</button>
+            </div>
+        );
+    }
+
     return (
         <div className="set-password-container">
             <div className="imgLogo">
-                <img src={imgLogo} alt='register_logo' className='register-logo' /> 
+                <img src={imgLogo} alt='register_logo' className='register-logo' />
                 <h2>Create a password</h2>
             </div>
-           
+
 
             <form onSubmit={handleSubmit}>
-            <input 
-            className="passfield"
-            type="password"
-            value={password}
-            onChange={handlePasswordChange}
-            placeholder="New password"
-            required
-        />
+                <input
+                    className="passfield"
+                    type="password"
+                    value={password}
+                    onChange={handlePasswordChange}
+                    placeholder="New password"
+                    required
+                />
                 <p>{feedback}</p>
-               
-                    <input
-                        className="passfield"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={handleConfirmPasswordChange}
-                        placeholder="Confirm new password"
-                        required
-                    />
-                
+
+                <input
+                    className="passfield"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={handleConfirmPasswordChange}
+                    placeholder="Confirm new password"
+                    required
+                />
+
                 {error && <p className="error">{error}</p>}
 
                 <div>
@@ -112,7 +150,7 @@ const SetPassword = () => {
                         <li>No spaces</li>
                         <li>Valid characters: ~ ! ? @ # $ % ^ & * _ - + ( ) [ ] { }  &lt; </li>
                     </ul>
-                 </div>
+                </div>
                 <button type="submit">Subbmit</button>
             </form>
             <p>Password Strength: <strong>{strength}</strong></p>
