@@ -7,6 +7,13 @@ export const Header = {
   org: localStorage.getItem('org')
 }
 
+export const getHeaders = () => ({
+  Accept: 'application/json',
+  'Content-Type': 'application/json',
+  Authorization: localStorage.getItem('Token'),
+  org: localStorage.getItem('org')
+});
+
 export const Header1 = {
   Accept: 'application/json',
   'Content-Type': 'application/json',
