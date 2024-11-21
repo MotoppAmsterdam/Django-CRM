@@ -31,7 +31,7 @@ urlpatterns = [
         "logout/", views.LogoutView.as_view(), {"next_page": "/login/"}, name="logout"
     ),
     path("admin/", include(wagtailadmin_urls)),
-    
+
     path("django/admin/", admin.site.urls),
     path("documents/", include(wagtaildocs_urls)),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
@@ -55,7 +55,8 @@ if settings.DEBUG:
     from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
     urlpatterns += staticfiles_urlpatterns()
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)
 
     # urlpatterns = urlpatterns + static(
     #     settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
