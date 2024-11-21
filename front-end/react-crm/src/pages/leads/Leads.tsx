@@ -464,7 +464,11 @@ export default function Leads(props: any) {
                   </Box>
                 </Box>
               </Box>
-            )) : <Spinner />
+            )) : openLeads && openLeads.length === 0 ? (
+              <div style={{ textAlign: 'center', marginTop: '20px', color: 'gray' }}>No open leads available</div>
+            ) : (
+              <Spinner />
+            )
           }
         </Box>
         : <Box sx={{ p: '10px', mt: '5px' }}>
@@ -531,8 +535,11 @@ export default function Leads(props: any) {
                   </Box>
                 </Box>
               </Box>
-            )) :
+            )) : openLeads && openLeads.length === 0 ? (
+              <div style={{ textAlign: 'center', marginTop: '20px', color: 'gray' }}>No closed leads available</div>
+            ) : (
               <Spinner />
+            )
           }
         </Box>}
       {/* {loading &&

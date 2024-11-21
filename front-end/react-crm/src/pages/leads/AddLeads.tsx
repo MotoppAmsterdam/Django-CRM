@@ -24,7 +24,7 @@ import { useQuill } from 'react-quilljs';
 import 'quill/dist/quill.snow.css';
 import '../../styles/style.css'
 import { LeadUrl } from '../../services/ApiUrls'
-import { fetchData, Header } from '../../components/FetchData'
+import { fetchData, getHeaders } from '../../components/FetchData'
 import { CustomAppBar } from '../../components/CustomAppBar'
 import { FaArrowDown, FaCheckCircle, FaFileUpload, FaPalette, FaPercent, FaPlus, FaTimes, FaTimesCircle, FaUpload } from 'react-icons/fa'
 import { useForm } from '../../components/UseForm'
@@ -132,6 +132,7 @@ interface FormData {
 export function AddLeads() {
   const navigate = useNavigate()
   const { state } = useLocation()
+  console.log(state);
   const { quill, quillRef } = useQuill();
   const initialContentRef = useRef(null);
 
@@ -276,6 +277,8 @@ export function AddLeads() {
       industry: formData.industry,
       skype_ID: formData.skype_ID
     }
+
+    const Header = getHeaders();
 
     fetchData(`${LeadUrl}/`, 'POST', JSON.stringify(data), Header)
       .then((res: any) => {
@@ -579,7 +582,7 @@ export function AddLeads() {
                             error={!!errors?.status?.[0]}
                           >
                             {state?.status?.length ? state?.status.map((option: any) => (
-                              <MenuItem key={option[0]} value={option[1]}>
+                              <MenuItem key={option[0]} value={option[0]}>
                                 {option[1]}
                               </MenuItem>
                             )) : ''}
