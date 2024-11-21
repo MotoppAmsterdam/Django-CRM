@@ -399,13 +399,17 @@ class DocumentEditSwaggerSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSwaggerSerializer(serializers.Serializer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.role.choices = list(map(lambda x: x.name, Role.objects.all()))
+
     """
     It is swagger for creating or updating user
     """
-    ROLE_CHOICES = ["ADMIN", "USER"]
 
     email = serializers.CharField(max_length=1000, required=True)
-    role = serializers.ChoiceField(choices=ROLE_CHOICES, required=True)
+    role = serializers.ChoiceField(choices=[], required=True)
     phone = serializers.CharField(max_length=12)
     alternate_phone = serializers.CharField(max_length=12)
     address_line = serializers.CharField(max_length=10000, required=True)
