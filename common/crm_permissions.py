@@ -1,12 +1,12 @@
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, BasePermission
 
 
 class IsAdmin(IsAuthenticated):
     def has_permission(self, request, view):
-        return request.user.role.name == "ADMIN" or request.user.is_superuser
+        return bool(super().has_permission(request, view) and (request.user.role.name == "ADMIN" or request.user.is_superuser))
 
 
-class CrmRoles(IsAuthenticated):
+class CrmRoles(BasePermission):
     def __init__(self, role):
         self.role = role
 
@@ -15,7 +15,7 @@ class CrmRoles(IsAuthenticated):
         return is_admin or request.user.role.name == self.role
 
 
-class CrmPermissions(IsAuthenticated):
+class CrmPermissions(BasePermission):
     def __init__(self,
                  get: str = None,
                  post: str = None,
@@ -28,6 +28,7 @@ class CrmPermissions(IsAuthenticated):
         self.patch = patch
         self.put = put
         self.delete = delete
+
 
     def has_permission(self, request, view):
         user_permissions = set(map(lambda x: x.name, request.user.role.permissions))
@@ -45,6 +46,7 @@ class CrmPermissions(IsAuthenticated):
 
         elif self.delete and request.method == 'DELETE':
             return self.delete in user_permissions
+        
         else:
-            return super().has_permission(self, request, view)
+            return False
 
