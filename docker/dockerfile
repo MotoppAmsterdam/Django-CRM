@@ -26,6 +26,7 @@ COPY . /app
 RUN mv ENV.md .env
 COPY docker/entrypoint.sh /app
 COPY docker/wait-for-postgres.sh /app
+COPY seeders/ /app/seeders/
 
 RUN dos2unix entrypoint.sh
 RUN dos2unix wait-for-postgres.sh
