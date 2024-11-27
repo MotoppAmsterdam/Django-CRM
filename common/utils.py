@@ -1,7 +1,6 @@
 import pytz
 from django.utils.translation import gettext_lazy as _
 
-
 def jwt_payload_handler(user):
     """Custom payload handler
     Token encrypts the dictionary returned by this function, and can be
@@ -622,3 +621,51 @@ def append_str_to(append_to: str, *args, sep=", ", **kwargs):
             data = True
             break
     return f"{sep}".join(filter(len, result_list)) if data else ""
+
+def get_contact_categories(contact_id):
+
+    from leads.models import Lead
+    from opportunity.models import Opportunity
+
+    """
+    Determine all applicable categories for a contact based on its leads and opportunities.
+    Ensure that if 'Loyal Customer' is included, 'Customer' is excluded.
+    """
+    try:
+        categories = set()  # Use a set to avoid duplicate categories
+
+        # Fetch related leads
+        leads = Lead.objects.filter(contacts__id=contact_id)
+        for lead in leads:
+            if lead.status in ["in process", "assigned"]:
+                categories.add("Lead")
+
+        # Fetch related opportunities
+        opportunities = Opportunity.objects.filter(contacts__id=contact_id)
+        closed_won_count = opportunities.filter(stage="CLOSED WON").count()
+        if closed_won_count > 1:
+            categories.add("Loyal Customer")  # More than one "CLOSED WON" opportunity
+        for opportunity in opportunities:
+            if opportunity.stage in [
+                "QUALIFICATION",
+                "NEEDS ANALYSIS",
+                "VALUE PROPOSITION",
+                "ID.DECISION MAKERS",
+                "PERCEPTION ANALYSIS",
+                "PROPOSAL/PRICE QUOTE",
+                "NEGOTIATION/REVIEW",
+            ]:
+                categories.add("Opportunity")
+            elif opportunity.stage == "CLOSED WON":
+                categories.add("Customer")
+
+        # Remove 'Customer' if 'Loyal Customer' exists
+        if "Loyal Customer" in categories and "Customer" in categories:
+            categories.remove("Customer")
+
+        # Convert categories set to a sorted list for consistent output
+        return sorted(categories)
+
+    except Exception as e:
+        return [f"Error: {str(e)}"]
+
