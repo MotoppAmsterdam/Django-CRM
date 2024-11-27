@@ -132,7 +132,7 @@ export const OpportunityDetails = (props: any) => {
             'Content-Type': 'application/json',
             Authorization: localStorage.getItem('Token'),
             org: localStorage.getItem('org')
-          }
+        }
         fetchData(`${OpportunityUrl}/${id}/`, 'GET', null as any, Header)
             .then((res) => {
                 console.log(res, 'edd');

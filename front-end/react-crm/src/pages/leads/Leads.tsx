@@ -379,60 +379,63 @@ export default function Leads(props: any) {
       {tab === 'open' ?
         <Box sx={{ p: '10px', mt: '5px' }}>
           {
-            // leads.open && leads.open
-            //   ? stableSort(leads.open && leads.open, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item, index) => (
-            // stableSort(openLeads, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item: any, index: any) => (
-            openLeads?.length ? openLeads.map((item: any, index: any) => (
-              <Box key={index}>
-                <Box className='lead-box'>
-                  <Box className='lead-box1'>
-                    <Stack className='lead-row1'>
-                      <div style={{ color: '#1A3353', fontSize: '1rem', fontWeight: '500', cursor: 'pointer' }} onClick={() => selectLeadList(item?.id)}>
-                        {item?.title}
-                      </div>
-                      <div onClick={() => deleteLead(item?.id)}>
-                        <FaTrashAlt style={{ cursor: 'pointer', color: 'gray' }} />
-                      </div>
-                    </Stack>
-                    <Stack className='lead-row2'>
-                      <div className='lead-row2-col1'>
-                        <div style={{ color: 'gray', fontSize: '16px', textTransform: 'capitalize' }}>
-                          {item?.country || ''} - source <span style={{ color: '#1a3353', fontWeight: 500 }}>{item?.source || '--'}</span> - status <span style={{ color: '#1a3353', fontWeight: 500 }}>{item?.status || '--'}</span>
+            loading ? (
+              <Spinner />
+            ) :
+              // leads.open && leads.open
+              //   ? stableSort(leads.open && leads.open, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item, index) => (
+              // stableSort(openLeads, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item: any, index: any) => (
+              openLeads?.length ? openLeads.map((item: any, index: any) => (
+                <Box key={index}>
+                  <Box className='lead-box'>
+                    <Box className='lead-box1'>
+                      <Stack className='lead-row1'>
+                        <div style={{ color: '#1A3353', fontSize: '1rem', fontWeight: '500', cursor: 'pointer' }} onClick={() => selectLeadList(item?.id)}>
+                          {item?.title}
                         </div>
-                        <Box sx={{
-                          ml: 1
-                          //  flexWrap: 'wrap', width: '50%' 
-                        }}>
-                          {
-                            item.tags.map((tagData: any, index: any) => (
-                              // tag.slice(0, 3).map((tagData: any, index: any) => (
-                              <Label tags={tagData} key={index} />
-                            ))
-                          }{item.tags.length > 4 ? <Link sx={{ ml: 1 }}>+{item.tags.length - 4}</Link> : ''}
-                        </Box>
-                        <Box sx={{ ml: 1 }}>
-                          <div style={{ display: 'flex' }}>
-                            <AvatarGroup
-                              // total={2}
-                              max={3}
-                            >
-                              {/* <Tooltip title={con.user.username}> */}
-                              {/* {tag.map((tagData: any, index: any) => ( */}
-                              {item?.team && item?.team?.map((team: any, index: any) => (
-                                <Avatar
-                                  alt={team}
-                                  src={team}
-                                >
-                                  {team}
-                                </Avatar>
-                              ))}
-                              {/* </Tooltip> */}
-                              {/* )} */}
-                            </AvatarGroup>
+                        <div onClick={() => deleteLead(item?.id)}>
+                          <FaTrashAlt style={{ cursor: 'pointer', color: 'gray' }} />
+                        </div>
+                      </Stack>
+                      <Stack className='lead-row2'>
+                        <div className='lead-row2-col1'>
+                          <div style={{ color: 'gray', fontSize: '16px', textTransform: 'capitalize' }}>
+                            {item?.country || ''} - source <span style={{ color: '#1a3353', fontWeight: 500 }}>{item?.source || '--'}</span> - status <span style={{ color: '#1a3353', fontWeight: 500 }}>{item?.status || '--'}</span>
                           </div>
+                          <Box sx={{
+                            ml: 1
+                            //  flexWrap: 'wrap', width: '50%' 
+                          }}>
+                            {
+                              item.tags.map((tagData: any, index: any) => (
+                                // tag.slice(0, 3).map((tagData: any, index: any) => (
+                                <Label tags={tagData} key={index} />
+                              ))
+                            }{item.tags.length > 4 ? <Link sx={{ ml: 1 }}>+{item.tags.length - 4}</Link> : ''}
+                          </Box>
+                          <Box sx={{ ml: 1 }}>
+                            <div style={{ display: 'flex' }}>
+                              <AvatarGroup
+                                // total={2}
+                                max={3}
+                              >
+                                {/* <Tooltip title={con.user.username}> */}
+                                {/* {tag.map((tagData: any, index: any) => ( */}
+                                {item?.team && item?.team?.map((team: any, index: any) => (
+                                  <Avatar
+                                    alt={team}
+                                    src={team}
+                                  >
+                                    {team}
+                                  </Avatar>
+                                ))}
+                                {/* </Tooltip> */}
+                                {/* )} */}
+                              </AvatarGroup>
+                            </div>
 
-                        </Box>
-                        {/* {
+                          </Box>
+                          {/* {
                           item.assigned_to.map((assignItem: any, index: any) => (
                             assignItem.user_details.profile_pic
                               ? <Avatar alt='Remy Sharp'
@@ -446,29 +449,27 @@ export default function Leads(props: any) {
                               </Avatar>
                           ))
                         } */}
-                      </div>
-                      <div className='lead-row2-col2'>
-                        {/* created on {formatDate(item.created_on)} by   &nbsp;<span> */}
-                        created&nbsp; {FormateTime(item?.created_at)}&nbsp; by
-                        <Avatar
-                          alt={item?.first_name}
-                          src={item?.created_by?.profile_pic}
-                          sx={{ ml: 1 }}
-                        // style={{
-                        //   height: '20px',
-                        //   width: '20px'
-                        // }}
-                        /> &nbsp;&nbsp;{item?.first_name}&nbsp;{item?.last_name}
-                      </div>
-                    </Stack>
+                        </div>
+                        <div className='lead-row2-col2'>
+                          {/* created on {formatDate(item.created_on)} by   &nbsp;<span> */}
+                          created&nbsp; {FormateTime(item?.created_at)}&nbsp; by
+                          <Avatar
+                            alt={item?.first_name}
+                            src={item?.created_by?.profile_pic}
+                            sx={{ ml: 1 }}
+                          // style={{
+                          //   height: '20px',
+                          //   width: '20px'
+                          // }}
+                          /> &nbsp;&nbsp;{item?.first_name}&nbsp;{item?.last_name}
+                        </div>
+                      </Stack>
+                    </Box>
                   </Box>
                 </Box>
-              </Box>
-            )) : openLeads && openLeads.length === 0 ? (
-              <div style={{ textAlign: 'center', marginTop: '20px', color: 'gray' }}>No open leads available</div>
-            ) : (
-              <Spinner />
-            )
+              )) : (
+                <div style={{ textAlign: 'center', marginTop: '20px', color: 'gray' }}>No open leads available</div>
+              )
           }
         </Box>
         : <Box sx={{ p: '10px', mt: '5px' }}>
