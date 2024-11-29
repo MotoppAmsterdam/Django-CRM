@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from common.models import Profile
 from accounts.models import Account, Tags
 from common.serializer import (
     AttachmentsSerializer,
@@ -87,6 +88,9 @@ class LeadSerializer(serializers.ModelSerializer):
 
 class LeadCreateSerializer(serializers.ModelSerializer):
     probability = serializers.IntegerField(max_value=100)
+    assigned_to = serializers.PrimaryKeyRelatedField(
+        queryset=Profile.objects.all(), many=True, required=False
+    )
 
     def __init__(self, *args, **kwargs):
         request_obj = kwargs.pop("request_obj", None)
@@ -104,6 +108,20 @@ class LeadCreateSerializer(serializers.ModelSerializer):
                 prev_choices = self.fields["source"]._get_choices()
                 prev_choices = prev_choices + [("micropyramid", "Micropyramid")]
                 self.fields["source"]._set_choices(prev_choices)
+
+    def validate_assigned_to(self, assigned_to):
+        if not assigned_to:
+            return []
+        return assigned_to
+
+    def create(self, validated_data):
+        assigned_to = validated_data.pop("assigned_to", [])
+        lead = super().create(validated_data)  # Create the lead instance
+        
+        # Assign users to the lead
+        if assigned_to:
+            lead.assigned_to.set(assigned_to)
+        return lead
 
     def validate_account_name(self, account_name):
         if self.instance:
@@ -163,8 +181,89 @@ class LeadCreateSerializer(serializers.ModelSerializer):
             "organization",
             "probability",
             "close_date",
-            # "lead_attachment",
+            "assigned_to",  
         )
+
+# class LeadCreateSerializer(serializers.ModelSerializer):
+#     probability = serializers.IntegerField(max_value=100)
+
+#     def __init__(self, *args, **kwargs):
+#         request_obj = kwargs.pop("request_obj", None)
+#         super().__init__(*args, **kwargs)
+#         if self.initial_data and self.initial_data.get("status") == "converted":
+#             self.fields["account_name"].required = True
+#             self.fields["email"].required = True
+#         self.fields["first_name"].required = False
+#         self.fields["last_name"].required = False
+#         self.fields["title"].required = True
+#         self.org = request_obj.profile.org
+
+#         if self.instance:
+#             if self.instance.created_from_site:
+#                 prev_choices = self.fields["source"]._get_choices()
+#                 prev_choices = prev_choices + [("micropyramid", "Micropyramid")]
+#                 self.fields["source"]._set_choices(prev_choices)
+
+#     def validate_account_name(self, account_name):
+#         if self.instance:
+#             if (
+#                 Account.objects.filter(name__iexact=account_name, org=self.org)
+#                 .exclude(id=self.instance.id)
+#                 .exists()
+#             ):
+#                 raise serializers.ValidationError(
+#                     "Account already exists with this name"
+#                 )
+#         else:
+#             if Account.objects.filter(name__iexact=account_name, org=self.org).exists():
+#                 raise serializers.ValidationError(
+#                     "Account already exists with this name"
+#                 )
+#         return account_name
+
+#     def validate_title(self, title):
+#         if self.instance:
+#             if (
+#                 Lead.objects.filter(title__iexact=title, org=self.org)
+#                 .exclude(id=self.instance.id)
+#                 .exists()
+#             ):
+#                 raise serializers.ValidationError("Lead already exists with this title")
+#         else:
+#             if Lead.objects.filter(title__iexact=title, org=self.org).exists():
+#                 raise serializers.ValidationError("Lead already exists with this title")
+#         return title
+
+#     class Meta:
+#         model = Lead
+#         fields = (
+#             "first_name",
+#             "last_name",
+#             "account_name",
+#             "title",
+#             "phone",
+#             "email",
+#             "status",
+#             "source",
+#             "website",
+#             "description",
+#             "address_line",
+#             # "contacts",
+#             "street",
+#             "city",
+#             "state",
+#             "postcode",
+#             "opportunity_amount",
+#             "country",
+#             "org",
+#             "skype_ID",
+#             "industry",
+#             "company",
+#             "organization",
+#             "probability",
+#             "close_date",
+#             # "lead_attachment",
+#         )
 
 class LeadCreateSwaggerSerializer(serializers.ModelSerializer):
     class Meta:
