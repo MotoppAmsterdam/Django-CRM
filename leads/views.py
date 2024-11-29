@@ -63,7 +63,8 @@ class LeadListView(APIView, LimitOffsetPagination):
         ).order_by("-id")
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
             queryset = queryset.filter(
-                Q(assigned_to__in=[self.request.profile])
+                # Q(assigned_to__in=[self.request.profile])
+                Q(assigned_to=self.request.profile)  # Directly match the profile object
                 | Q(created_by=self.request.profile.user)
             )
 

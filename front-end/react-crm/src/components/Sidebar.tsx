@@ -54,6 +54,8 @@ export default function Sidebar(props: any) {
     const [drawerWidth, setDrawerWidth] = useState(200)
     const [headerWidth, setHeaderWidth] = useState(drawerWidth)
     const [userDetail, setUserDetail] = useState('')
+    // user role for conditionally rendering the contents of the page
+    const [userRole, setUserRole] = useState('')
     const [organizationModal, setOrganizationModal] = useState(false)
     const organizationModalClose = () => { setOrganizationModal(false) }
 
@@ -102,7 +104,7 @@ export default function Sidebar(props: any) {
     const userProfile = () => {
         fetchData(`${ProfileUrl}/`, 'GET', null as any, Header1)
             .then((res: any) => {
-                // console.log(res, 'user')
+                console.log(res, 'user')
                 if (res?.user_obj) {
                     setUserDetail(res?.user_obj)
                 }
