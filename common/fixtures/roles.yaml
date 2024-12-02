@@ -31,6 +31,10 @@
   pk: 7
   fields:
     name: Settings
+- model: common.module
+  pk: 8
+  fields:
+    name: Roles
 
 # Permissions
 # Leads
@@ -170,11 +174,28 @@
     name: delete_setting
     module: 7
 # Roles
+- model: common.permission
+  fields:
+    name: get_role
+    module: 8
+- model: common.permission
+  fields:
+    name: add_role
+    module: 8
+- model: common.permission
+  fields:
+    name: edit_role
+    module: 8
+- model: common.permission
+  fields:
+    name: delete_role
+    module: 8
+# Roles
 - model: common.role
   pk: ADMIN
   fields:
     name: ADMIN
-    permissions: ["add_lead", "get_lead", "edit_lead", "delete_lead", "add_contact", "get_contact", "edit_contact", "delete_contact", "add_opportunity", "get_opportunity", "edit_opportunity", "delete_opportunity", "add_account", "get_account", "edit_account", "delete_account", "add_company", "get_company", "edit_company", "delete_company", "add_user", "get_user", "edit_user", "delete_user", "add_case", "get_case", "edit_case", "delete_case", "add_setting", "get_setting", "edit_setting", "delete_setting"]
+    permissions: ["add_lead", "get_lead", "edit_lead", "delete_lead", "add_contact", "get_contact", "edit_contact", "delete_contact", "add_opportunity", "get_opportunity", "edit_opportunity", "delete_opportunity", "add_account", "get_account", "edit_account", "delete_account", "add_company", "get_company", "edit_company", "delete_company", "add_user", "get_user", "edit_user", "delete_user", "add_case", "get_case", "edit_case", "delete_case", "add_setting", "get_setting", "edit_setting", "delete_setting", "get_role", "add_role", "edit_role", "delete_role"]
 - model: common.role
   pk: SALES_MANAGER
   fields:
