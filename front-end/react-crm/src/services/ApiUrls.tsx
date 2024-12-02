@@ -33,3 +33,4 @@ export const UserUrl = '/api/user'
 export const ProfileUrl = '/api/profile'
 // 
 export const OrgAuthUrl = '/api/organization/google-auth'
+export const ContactCategoryUrl = '/api/contact-category'

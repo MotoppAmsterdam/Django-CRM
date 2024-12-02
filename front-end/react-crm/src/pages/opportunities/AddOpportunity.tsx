@@ -186,7 +186,7 @@ export function AddOpportunity() {
             'Content-Type': 'application/json',
             Authorization: localStorage.getItem('Token'),
             org: localStorage.getItem('org')
-          }
+        }
         // console.log('Form data:', formData.lead_attachment,'sfs', formData.file);
         const data = {
 

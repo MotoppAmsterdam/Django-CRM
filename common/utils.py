@@ -623,28 +623,33 @@ def append_str_to(append_to: str, *args, sep=", ", **kwargs):
     return f"{sep}".join(filter(len, result_list)) if data else ""
 
 def get_contact_categories(contact_id):
-
     from leads.models import Lead
     from opportunity.models import Opportunity
 
     """
     Determine all applicable categories for a contact based on its leads and opportunities.
-    Ensure that if 'Loyal Customer' is included, 'Customer' is excluded.
+    Include related lead or opportunity IDs for the front-end.
     """
     try:
-        categories = set()  # Use a set to avoid duplicate categories
+        categories = {}  # Use a dictionary to store categories and their related IDs
 
         # Fetch related leads
         leads = Lead.objects.filter(contacts__id=contact_id)
+        lead_ids = []
         for lead in leads:
             if lead.status in ["in process", "assigned"]:
-                categories.add("Lead")
+                lead_ids.append(lead.id)
+        if lead_ids:
+            categories["Lead"] = lead_ids
 
         # Fetch related opportunities
         opportunities = Opportunity.objects.filter(contacts__id=contact_id)
+        opportunity_ids = []
         closed_won_count = opportunities.filter(stage="CLOSED WON").count()
+
         if closed_won_count > 1:
-            categories.add("Loyal Customer")  # More than one "CLOSED WON" opportunity
+            categories["Loyal Customer"] = [opportunity.id for opportunity in opportunities.filter(stage="CLOSED WON")]
+
         for opportunity in opportunities:
             if opportunity.stage in [
                 "QUALIFICATION",
@@ -655,17 +660,20 @@ def get_contact_categories(contact_id):
                 "PROPOSAL/PRICE QUOTE",
                 "NEGOTIATION/REVIEW",
             ]:
-                categories.add("Opportunity")
+                opportunity_ids.append(opportunity.id)
             elif opportunity.stage == "CLOSED WON":
-                categories.add("Customer")
+                categories.setdefault("Customer", []).append(opportunity.id)
+
+        if opportunity_ids:
+            categories["Opportunity"] = opportunity_ids
 
         # Remove 'Customer' if 'Loyal Customer' exists
         if "Loyal Customer" in categories and "Customer" in categories:
-            categories.remove("Customer")
+            del categories["Customer"]
 
-        # Convert categories set to a sorted list for consistent output
-        return sorted(categories)
+        return categories
 
     except Exception as e:
-        return [f"Error: {str(e)}"]
+        return {"error": str(e)}
+
 

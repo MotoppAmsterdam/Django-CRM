@@ -1186,12 +1186,16 @@ class VerifyEmailForRegistrationView(APIView):
     
 class ContactCategoryView(APIView):
     """
-    API to fetch the category of a contact.
+    API to fetch the category of a contact along with related lead or opportunity IDs.
     """
 
     def get(self, request, contact_id):
         try:
-            categories = get_contact_categories(contact_id)
-            return Response({"contact_id": contact_id, "categories": categories}, status=status.HTTP_200_OK)
+            categories_with_ids = get_contact_categories(contact_id)
+            return Response(
+                {"contact_id": contact_id, "categories": categories_with_ids},
+                status=status.HTTP_200_OK,
+            )
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
