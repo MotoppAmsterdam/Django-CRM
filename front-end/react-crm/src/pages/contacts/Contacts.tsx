@@ -20,37 +20,12 @@ interface HeadCell {
 }
 
 const headCells: readonly HeadCell[] = [
-    {
-        id: 'first_name',
-        numeric: false,
-        disablePadding: false,
-        label: 'Name'
-    },
-    {
-        id: 'primary_email',
-        numeric: true,
-        disablePadding: false,
-        label: 'Email Address'
-    },
-    {
-        id: 'mobile_number',
-        numeric: true,
-        disablePadding: false,
-        label: 'Phone Number'
-    },
-    {
-        id: 'categories',
-        numeric: true,
-        disablePadding: false,
-        label: 'Categories'
-    },
-    {
-        id: '',
-        numeric: true,
-        disablePadding: false,
-        label: 'Action'
-    }
-]
+    { id: 'first_name', numeric: false, disablePadding: false, label: 'Name' },
+    { id: 'primary_email', numeric: true, disablePadding: false, label: 'Email Address' },
+    { id: 'mobile_number', numeric: true, disablePadding: false, label: 'Phone Number' },
+    { id: 'categories', numeric: true, disablePadding: false, label: 'Categories' },
+    { id: '', numeric: true, disablePadding: false, label: 'Action' }
+];
 
 const categoryStyles: { [key: string]: { backgroundColor: string; borderColor: string } } = {
     Lead: { backgroundColor: '#FF73001A', borderColor: '#FF7300' },
@@ -98,7 +73,6 @@ export default function Contacts() {
                         return { ...contact, categories };
                     })
                 );
-                console.log(contactListWithCategories);
                 setContactList(contactListWithCategories as any[]);
                 setCountries(data.countries);
                 setTotalPages(Math.ceil(data.contacts_count / recordsPerPage));
@@ -118,7 +92,6 @@ export default function Contacts() {
                 },
             });
             const categoryData = await response.json();
-            console.log("Category Data: ", categoryData);
             return categoryData.categories || [];
         } catch (error) {
             console.error(`Error fetching categories for contact ${contactId}:`, error);
@@ -126,9 +99,12 @@ export default function Contacts() {
         }
     };
 
-    const handleChipClick = (category: string) => {
-        console.log(`Clicked on category: ${category}`);
-        // Handle category click logic here
+    const handleChipClick = (category: string, id: number) => {
+        if (category === 'Lead') {
+            navigate(`/app/leads/lead-details`, { state: { leadId: id, detail: true } });
+        } else if (category === 'Opportunity') {
+            navigate(`/app/opportunities/opportunity-details`, { state: { opportunityId: id, detail: true } });
+        }
     };
 
     const handleRequestSort = (event: any, property: any) => {
@@ -194,34 +170,52 @@ export default function Contacts() {
     return (
         <Box sx={{ mt: '60px' }}>
             <Container sx={{ width: '100%' }}>
-                <Box sx={{ width: '100%', minWidth: '100%', m: '15px 0px 0px 0px' }}>
-                    <Paper sx={{ width: '100%', mb: 2, p: '15px' }}>
-                        <TableContainer>
-                            <Table>
-                                <EnhancedTableHead
-                                    order={order}
-                                    orderBy={orderBy}
-                                    onRequestSort={handleRequestSort}
-                                    headCells={headCells}
-                                />
-                                <TableBody>
-                                    {contactList?.length
-                                        ? stableSort(contactList, getComparator(order, orderBy)).map((item: any, index: any) => (
-                                            <TableRow
-                                                key={index}
-                                                sx={{ border: 0, '&:nth-of-type(even)': { backgroundColor: 'whitesmoke' }, textTransform: 'capitalize' }}>
-                                                <TableCell onClick={() => contactHandle(item.id)}>
-                                                    {item.first_name + ' ' + item.last_name}
-                                                </TableCell>
-                                                <TableCell>{item.primary_email}</TableCell>
-                                                <TableCell>{item.mobile_number || '---'}</TableCell>
-                                                <TableCell>
-                                                    {item.categories?.map((category: string) => (
+                <Paper sx={{ width: '100%', mb: 2, p: '15px' }}>
+                    {/* Top Menu with Add Contact Button */}
+                    <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="h6">Contacts</Typography>
+                        <Button
+                            variant="contained"
+                            startIcon={<FiPlus />}
+                            onClick={onAddContact}
+                            sx={{ padding: '8px 16px', fontSize: '14px' }}
+                        >
+                            Add Contact
+                        </Button>
+                    </Toolbar>
+
+                    <TableContainer>
+                        <Table>
+                            <EnhancedTableHead
+                                order={order}
+                                orderBy={orderBy}
+                                onRequestSort={handleRequestSort}
+                                headCells={headCells}
+                            />
+                            <TableBody>
+                                {contactList?.length
+                                    ? stableSort(contactList, getComparator(order, orderBy)).map((item: any, index: any) => (
+                                        <TableRow
+                                            key={index}
+                                            sx={{
+                                                border: 0,
+                                                '&:nth-of-type(even)': { backgroundColor: 'whitesmoke' },
+                                                textTransform: 'capitalize',
+                                            }}
+                                        >
+                                            <TableCell onClick={() => contactHandle(item.id)}>
+                                                {item.first_name + ' ' + item.last_name}
+                                            </TableCell>
+                                            <TableCell>{item.primary_email}</TableCell>
+                                            <TableCell>{item.mobile_number || '---'}</TableCell>
+                                            <TableCell>
+                                                {Object.entries(item.categories || {}).map(([category, ids]) =>
+                                                    (ids as number[]).map((id: number) => (
                                                         <Chip
-                                                            key={category}
-                                                            label={category}
+                                                            key={`${category}-${id}`}
+                                                            label={`${category}`}
                                                             clickable
-                                                            onClick={() => handleChipClick(category)}
+                                                            onClick={() => handleChipClick(category, id)}
                                                             sx={{
                                                                 backgroundColor: categoryStyles[category]?.backgroundColor,
                                                                 border: `1px solid ${categoryStyles[category]?.borderColor}`,
@@ -229,21 +223,52 @@ export default function Contacts() {
                                                                 margin: '0 4px',
                                                             }}
                                                         />
-                                                    ))}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <FaTrashAlt style={{ cursor: 'pointer' }} onClick={() => deleteRow(item.id)} />
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                        : null}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                        {loading && <Spinner />}
-                    </Paper>
+                                                    ))
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <FaTrashAlt style={{ cursor: 'pointer' }} onClick={() => deleteRow(item.id)} />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                    : null}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    {loading && <Spinner />}
+                </Paper>
+
+                {/* Pagination */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                        <Button
+                            onClick={handlePreviousPage}
+                            disabled={currentPage === 1}
+                            startIcon={<FiChevronLeft />}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            onClick={handleNextPage}
+                            disabled={currentPage === totalPages}
+                            endIcon={<FiChevronRight />}
+                        >
+                            Next
+                        </Button>
+                    </Box>
+                    <Select
+                        value={recordsPerPage}
+                        onChange={(e: any) => handleRecordsPerPage(e)}
+                        sx={{ width: 120 }}
+                    >
+                        <MenuItem value={10}>10</MenuItem>
+                        <MenuItem value={25}>25</MenuItem>
+                        <MenuItem value={50}>50</MenuItem>
+                    </Select>
                 </Box>
             </Container>
+
+            {/* Delete Modal */}
             <DeleteModal
                 onClose={deleteRowModalClose}
                 open={deleteRowModal}
