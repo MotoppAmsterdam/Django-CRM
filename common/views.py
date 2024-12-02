@@ -65,7 +65,7 @@ from teams.models import Teams
 from teams.serializer import TeamsSerializer
 from django.core.exceptions import ObjectDoesNotExist
 from common.access_decorators_mixins import has_permission
-from common.crm_permissions import IsAdmin, CrmPermissions, CrmRoles
+from common.crm_permissions import IsAdmin, crm_permissions, crm_roles
 
 class GetTeamsAndUsersView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -89,8 +89,7 @@ class UsersListView(APIView, LimitOffsetPagination):
 
     @extend_schema(parameters=swagger_params1.organization_params, request=UserCreateSwaggerSerializer)
     def post(self, request, format=None):
-        print(request.profile.role, request.user.is_superuser)
-        if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
+        if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             return Response(
                 {"error": True, "errors": "Permission Denied"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -125,10 +124,12 @@ class UsersListView(APIView, LimitOffsetPagination):
                     # if params.get("password"):
                     #     user.set_password(params.get("password"))
                     #     user.save()
+                    role_name = params.get("role")
+                    role = Role.objects.get(name=role_name)
                     profile = Profile.objects.create(
                         user=user,
                         date_of_joining=timezone.now(),
-                        role=params.get("role"),
+                        role=role,
                         address=address_obj,
                         org=request.profile.org,
                     )
@@ -249,7 +250,7 @@ class UserDetailView(APIView):
     def get(self, request, pk, format=None):
         profile_obj = self.get_object(pk)
         if (
-                self.request.profile.role != "ADMIN"
+                self.request.profile.role.name != "ADMIN"
                 and not self.request.profile.is_admin
                 and self.request.profile.id != profile_obj.id
         ):
@@ -290,7 +291,7 @@ class UserDetailView(APIView):
         profile = self.get_object(pk)
         address_obj = profile.address
         if (
-                self.request.profile.role != "ADMIN"
+                self.request.profile.role.name != "ADMIN"
                 and not self.request.user.is_superuser
                 and self.request.profile.id != profile.id
         ):
@@ -350,7 +351,7 @@ class UserDetailView(APIView):
         address_obj = profile.address
 
         if (
-            self.request.profile.role != "ADMIN"
+            self.request.profile.role.name != "ADMIN"
             and not self.request.user.is_superuser
             and self.request.profile.id != profile.id
         ):
@@ -410,7 +411,7 @@ class UserDetailView(APIView):
     def delete(self, request, pk, format=None):
         profile = self.get_object(pk)
 
-        if (request.profile.role != "ADMIN"
+        if (request.profile.role.name != "ADMIN"
                 and not request.user.is_superuser
                 and request.profile.id != profile.id):
             return Response(
@@ -445,7 +446,7 @@ class ApiHomeView(APIView):
         )
         opportunities = Opportunity.objects.filter(org=request.profile.org)
 
-        if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
+        if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             accounts = accounts.filter(
                 Q(assigned_to=self.request.profile) | Q(
                     created_by=self.request.profile.user)
@@ -542,7 +543,7 @@ class OrganizationGoogleAuthView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, org_id):
-        if request.profile.role != "ADMIN":
+        if request.profile.role.name != "ADMIN":
             return Response(
                 {
                     "error": True,
@@ -555,7 +556,7 @@ class OrganizationGoogleAuthView(APIView):
         return Response({'google_auth_enabled': organization.google_auth_enabled})
 
     def patch(self, request, org_id):
-        if request.profile.role != "ADMIN":
+        if request.profile.role.name != "ADMIN":
             return Response(
                 {
                     "error": True,
@@ -593,7 +594,7 @@ class DocumentListView(APIView, LimitOffsetPagination):
         params = self.request.query_params
         queryset = self.model.objects.filter(
             org=self.request.profile.org).order_by("-id")
-        if self.request.user.is_superuser or self.request.profile.role == "ADMIN":
+        if self.request.user.is_superuser or self.request.profile.role.name == "ADMIN":
             queryset = queryset
         else:
             if self.request.profile.documents():
@@ -626,7 +627,7 @@ class DocumentListView(APIView, LimitOffsetPagination):
         context = {}
         profile_list = Profile.objects.filter(
             is_active=True, org=self.request.profile.org)
-        if self.request.profile.role == "ADMIN" or self.request.profile.is_admin:
+        if self.request.profile.role.name == "ADMIN" or self.request.profile.is_admin:
             profiles = profile_list.order_by("user__email")
         else:
             profiles = profile_list.filter(
@@ -750,7 +751,7 @@ class DocumentDetailView(APIView):
                 {"error": True, "errors": "User company doesnot match with header...."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
+        if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             if not (
                     (self.request.profile == self.object.created_by)
                     or (self.request.profile in self.object.shared_to.all())
@@ -763,7 +764,7 @@ class DocumentDetailView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
         profile_list = Profile.objects.filter(org=self.request.profile.org)
-        if request.profile.role == "ADMIN" or request.user.is_superuser:
+        if request.profile.role.name == "ADMIN" or request.user.is_superuser:
             profiles = profile_list.order_by("user__email")
         else:
             profiles = profile_list.filter(
@@ -794,7 +795,7 @@ class DocumentDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
+        if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             if (
                     self.request.profile != document.created_by
             ):  # or (self.request.profile not in document.shared_to.all()):
@@ -827,7 +828,7 @@ class DocumentDetailView(APIView):
                 {"error": True, "errors": "User company doesnot match with header...."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
+        if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             if not (
                     (self.request.profile == self.object.created_by)
                     or (self.request.profile in self.object.shared_to.all())
@@ -882,7 +883,7 @@ class UserStatusView(APIView):
         request=UserUpdateStatusSwaggerSerializer
     )
     def post(self, request, pk, format=None):
-        if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
+        if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             return Response(
                 {
                     "error": True,
@@ -1186,3 +1187,58 @@ class VerifyEmailForRegistrationView(APIView):
         )
     
 
+
+class RoleView(APIView):
+    permission_classes = (crm_permissions(get='get_role', post='add_role', put='edit_role', delete='delete_role'),)
+
+    @extend_schema(tags=['roles'], summary='Get role object for a provided name', responses=RoleSerializer)
+    def get(self, request, pk):
+        role = get_object_or_404(Role, pk=pk)
+        return Response(RoleSerializer(role).data)
+
+    @extend_schema(tags=['roles'],
+                   summary='Update a role object with a new name or permissions',
+                   request=RoleInputSerializer,
+                   responses=RoleSerializer)
+    def put(self, request, pk):
+        current = Role.objects.get(pk=pk)
+        is_new = not current
+        serializer = RoleInputSerializer(data=request.data, instance=current)
+        serializer.is_valid(raise_exception=True)
+        role = serializer.save()
+
+        response_serializer = RoleSerializer(role)
+
+        if is_new:
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(tags=['roles'], summary='Delete a role object for a provided name')
+    def delete(self, request, pk):
+        role = get_object_or_404(Role, pk=pk)
+        role.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class RolesView(APIView):
+    permission_classes = (crm_roles(roles=["ADMIN", "SALES_MANAGER", "SALES_REPRESENTATIVE"]),)
+
+    @extend_schema(tags=['roles'], summary='Get all roles object')
+    def get(self, request):
+        roles = Role.objects.all()
+        role_serializer = RoleSerializer(roles, many=True)
+        return Response(role_serializer.data)
+
+    @extend_schema(tags=['roles'],
+                   summary='Create a new role object for a provided name and permissions',
+                   responses=RoleSerializer,
+                   request=RoleInputSerializer)
+    def post(self, request):
+        role_serializer = RoleInputSerializer(data=request.data)
+        if role_serializer.is_valid():
+            role = role_serializer.save()
+            response_serializer = RoleSerializer(role)
+            return Response(response_serializer.data,
+                            status=status.HTTP_201_CREATED)
+        return Response(role_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

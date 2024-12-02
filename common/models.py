@@ -42,7 +42,7 @@ class Permission(models.Model):
 
 class Role(models.Model):
     name = models.CharField(max_length=50, unique=True, primary_key=True)
-    permissions = models.ManyToManyField(Permission)
+    permissions = models.ManyToManyField(Permission, related_name="roles")
 
 
 class User(AbstractBaseUser, PermissionsMixin):

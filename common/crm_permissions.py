@@ -1,21 +1,27 @@
 from rest_framework.permissions import IsAuthenticated, BasePermission
+from common.models import Profile, Role, Permission
 
 
 class IsAdmin(IsAuthenticated):
     def has_permission(self, request, view):
-        return bool(super().has_permission(request, view) and (request.user.role.name == "ADMIN" or request.user.is_superuser))
+        user_id = request.user.id
+        profile = Profile.objects.filter(user_id=user_id).first()
+        return bool(super().has_permission(request, view)
+                    and (profile.role.name == "ADMIN" or request.user.is_superuser))
 
 
-class CrmRoles(BasePermission):
-    def __init__(self, role):
-        self.role = role
+class CrmRoles(IsAuthenticated):
+    def __init__(self, roles):
+        self.roles = roles
 
     def has_permission(self, request, view):
-        is_admin = request.user.role.name == "ADMIN" or request.user.is_superuser
-        return is_admin or request.user.role.name == self.role
+        user_id = request.user.id
+        profile = Profile.objects.filter(user_id=user_id).first()
+        is_admin = profile.role.name == "ADMIN" or request.user.is_superuser
+        return super().has_permission(request, view) and (is_admin or profile.role.name in self.roles)
 
 
-class CrmPermissions(BasePermission):
+class CrmPermissions(IsAuthenticated):
     def __init__(self,
                  get: str = None,
                  post: str = None,
@@ -29,24 +35,45 @@ class CrmPermissions(BasePermission):
         self.put = put
         self.delete = delete
 
-
     def has_permission(self, request, view):
-        user_permissions = set(map(lambda x: x.name, request.user.role.permissions))
-        if self.get and request.method == 'GET':
-            return self.get in user_permissions
+        if super().has_permission(request, view):
+            user_id = request.user.id
+            profile = Profile.objects.get(user_id=user_id)
+            role_permissions = Permission.objects.filter(roles=profile.role).all()
+            user_permissions = set(map(lambda x: x.name, role_permissions))
+            if self.get and request.method == 'GET':
+                return self.get in user_permissions
 
-        elif self.post and request.method == 'POST':
-            return self.post in user_permissions
+            elif self.post and request.method == 'POST':
+                return self.post in user_permissions
 
-        elif self.patch and request.method == 'PATCH':
-            return self.patch in user_permissions
+            elif self.patch and request.method == 'PATCH':
+                return self.patch in user_permissions
 
-        elif self.put and request.method == 'PUT':
-            return self.put in user_permissions
+            elif self.put and request.method == 'PUT':
+                return self.put in user_permissions
 
-        elif self.delete and request.method == 'DELETE':
-            return self.delete in user_permissions
-        
-        else:
-            return False
+            elif self.delete and request.method == 'DELETE':
+                return self.delete in user_permissions
 
+        return False
+
+
+def crm_roles(roles: list[str]):
+    class CustomCrmRoles(CrmRoles):
+        def __init__(self):
+            super().__init__(roles)
+
+    return CustomCrmRoles
+
+
+def crm_permissions(get: str = None,
+                    post: str = None,
+                    patch: str = None,
+                    put: str = None,
+                    delete: str = None):
+    class CustomCrmPermission(CrmPermissions):
+        def __init__(self):
+            super().__init__(get=get, post=post, patch=patch, put=put, delete=delete)
+
+    return CustomCrmPermission

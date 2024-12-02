@@ -39,6 +39,7 @@ class ModuleSerializer(serializers.ModelSerializer):
             "name"
         )
 
+
 class PermissionSerializer(serializers.ModelSerializer):
     module = ModuleSerializer()
     class Meta:
@@ -48,14 +49,50 @@ class PermissionSerializer(serializers.ModelSerializer):
             "module"
         )
 
+
 class RoleSerializer(serializers.ModelSerializer):
     permissions = PermissionSerializer(many=True)
+
     class Meta:
         model = Role
         fields = (
             "name",
             "permissions"
         )
+
+
+class RoleInputSerializer(serializers.ModelSerializer):
+    permissions = serializers.ListSerializer(child=serializers.CharField())
+
+    class Meta:
+        model = Role
+        fields = (
+            "name",
+            "permissions"
+        )
+
+
+    def validate_permissions(self, value):
+        for name in value:
+            if not Permission.objects.filter(name=name).exists():
+                raise serializers.ValidationError(f"Permission {name} is not exist")
+        return value
+
+    def create(self, validated_data):
+        permissions_data = validated_data.pop("permissions")
+        permissions = Permission.objects.filter(name__in=permissions_data).all()
+        role = Role.objects.create(**validated_data)
+        role.permissions.set(permissions)
+        return role
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.pop('name')
+        permissions_names = validated_data.pop('permissions')
+        permissions = Permission.objects.filter(name__in=permissions_names).all()
+        instance.permissions.set(permissions)
+        instance.save()
+        return instance
+
 
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -399,17 +436,17 @@ class DocumentEditSwaggerSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSwaggerSerializer(serializers.Serializer):
-
+    role_choices = []
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.role.choices = list(map(lambda x: x.name, Role.objects.all()))
+        self.role_choices = list(map(lambda x: x.name, Role.objects.all()))
 
     """
     It is swagger for creating or updating user
     """
 
     email = serializers.CharField(max_length=1000, required=True)
-    role = serializers.ChoiceField(choices=[], required=True)
+    role = serializers.ChoiceField(choices=role_choices, required=True)
     phone = serializers.CharField(max_length=12)
     alternate_phone = serializers.CharField(max_length=12)
     address_line = serializers.CharField(max_length=10000, required=True)
