@@ -1,7 +1,6 @@
 import pytz
 from django.utils.translation import gettext_lazy as _
 
-
 def jwt_payload_handler(user):
     """Custom payload handler
     Token encrypts the dictionary returned by this function, and can be
@@ -622,3 +621,59 @@ def append_str_to(append_to: str, *args, sep=", ", **kwargs):
             data = True
             break
     return f"{sep}".join(filter(len, result_list)) if data else ""
+
+def get_contact_categories(contact_id):
+    from leads.models import Lead
+    from opportunity.models import Opportunity
+
+    """
+    Determine all applicable categories for a contact based on its leads and opportunities.
+    Include related lead or opportunity IDs for the front-end.
+    """
+    try:
+        categories = {}  # Use a dictionary to store categories and their related IDs
+
+        # Fetch related leads
+        leads = Lead.objects.filter(contacts__id=contact_id)
+        lead_ids = []
+        for lead in leads:
+            if lead.status in ["in process", "assigned"]:
+                lead_ids.append(lead.id)
+        if lead_ids:
+            categories["Lead"] = lead_ids
+
+        # Fetch related opportunities
+        opportunities = Opportunity.objects.filter(contacts__id=contact_id)
+        opportunity_ids = []
+        closed_won_count = opportunities.filter(stage="CLOSED WON").count()
+
+        if closed_won_count > 1:
+            categories["Loyal Customer"] = [opportunity.id for opportunity in opportunities.filter(stage="CLOSED WON")]
+
+        for opportunity in opportunities:
+            if opportunity.stage in [
+                "QUALIFICATION",
+                "NEEDS ANALYSIS",
+                "VALUE PROPOSITION",
+                "ID.DECISION MAKERS",
+                "PERCEPTION ANALYSIS",
+                "PROPOSAL/PRICE QUOTE",
+                "NEGOTIATION/REVIEW",
+            ]:
+                opportunity_ids.append(opportunity.id)
+            elif opportunity.stage == "CLOSED WON":
+                categories.setdefault("Customer", []).append(opportunity.id)
+
+        if opportunity_ids:
+            categories["Opportunity"] = opportunity_ids
+
+        # Remove 'Customer' if 'Loyal Customer' exists
+        if "Loyal Customer" in categories and "Customer" in categories:
+            del categories["Customer"]
+
+        return categories
+
+    except Exception as e:
+        return {"error": str(e)}
+
+

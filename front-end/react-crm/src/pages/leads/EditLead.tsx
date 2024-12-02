@@ -673,7 +673,7 @@ export function EditLead() {
                                                         error={!!errors?.status?.[0]}
                                                     >
                                                         {state?.status?.length && state?.status.map((option: any) => (
-                                                            <MenuItem key={option[0]} value={option[1]}>
+                                                            <MenuItem key={option[0]} value={option[0]}>
                                                                 {option[1]}
                                                             </MenuItem>
                                                         ))}
@@ -767,8 +767,8 @@ export function EditLead() {
                                                         value={selectedTags}
                                                         multiple
                                                         limitTags={5}
-                                                        options={state?.tags || []}
-                                                        // options={state.contacts ? state.contacts.map((option: any) => option) : ['']}
+                                                        // options={state?.tags || []}
+                                                        options={state.contacts ? state.contacts.map((option: any) => option) : ['']}
                                                         getOptionLabel={(option: any) => option}
                                                         onChange={(e: any, value: any) => handleChange2('tags', value)}
                                                         size='small'

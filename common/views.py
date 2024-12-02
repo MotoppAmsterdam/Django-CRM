@@ -55,7 +55,7 @@ from common.tasks import (
 from common.token_generator import account_activation_token
 
 # from rest_framework_jwt.serializers import jwt_encode_handler
-from common.utils import COUNTRIES, ROLES, jwt_payload_handler
+from common.utils import COUNTRIES, ROLES, get_contact_categories, jwt_payload_handler
 from contacts.serializer import ContactSerializer
 from leads.models import Lead
 from leads.serializer import LeadSerializer
@@ -1183,3 +1183,19 @@ class VerifyEmailForRegistrationView(APIView):
             },
             status=status.HTTP_200_OK
         )
+    
+class ContactCategoryView(APIView):
+    """
+    API to fetch the category of a contact along with related lead or opportunity IDs.
+    """
+
+    def get(self, request, contact_id):
+        try:
+            categories_with_ids = get_contact_categories(contact_id)
+            return Response(
+                {"contact_id": contact_id, "categories": categories_with_ids},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

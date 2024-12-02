@@ -348,7 +348,11 @@ export const OpportunityDetails = (props: any) => {
                                 <div style={{ width: '32%' }}>
                                     <div className='title2'>Assigned Users</div>
                                     <div className='title3'>
-                                        {opportunityDetails?.assigned_to || '----'}
+                                        {opportunityDetails?.assigned_to?.length
+                                            ? opportunityDetails.assigned_to.map((assigned: any, index: number) => (
+                                                <span key={index}>{assigned.user_details.email || 'No Email'}</span>
+                                            ))
+                                            : '----'}
                                     </div>
                                 </div>
                                 <div style={{ width: '32%' }}>
