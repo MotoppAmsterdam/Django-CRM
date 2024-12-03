@@ -59,6 +59,14 @@ class ContactsListView(APIView, LimitOffsetPagination):
             queryset.distinct(), self.request, view=self
         )
         contacts = ContactSerializer(results_contact, many=True).data
+
+        # Add categories for each contact
+        for contact in contacts:
+            contact_id = contact.get("id")
+            if contact_id:
+                categories = self.get_contact_categories(contact_id)
+                contact["categories"] = categories
+
         if results_contact:
             offset = queryset.filter(id__gte=results_contact[-1].id).count()
             if offset == queryset.count():
@@ -77,6 +85,59 @@ class ContactsListView(APIView, LimitOffsetPagination):
         context["users"] = users
 
         return context
+    
+    def get_contact_categories(self, contact_id):
+        """
+        Fetch the categories for a given contact based on its associated leads and opportunities.
+        """
+        from leads.models import Lead
+        from opportunity.models import Opportunity
+
+        categories = {}
+
+        try:
+            # Fetch related leads
+            leads = Lead.objects.filter(contacts__id=contact_id)
+            lead_ids = []
+            for lead in leads:
+                if lead.status in ["in process", "assigned"]:
+                    lead_ids.append(lead.id)
+            if lead_ids:
+                categories["Lead"] = lead_ids
+
+            # Fetch related opportunities
+            opportunities = Opportunity.objects.filter(contacts__id=contact_id)
+            opportunity_ids = []
+            closed_won_count = opportunities.filter(stage="CLOSED WON").count()
+
+            if closed_won_count > 1:
+                categories["Loyal Customer"] = [opportunity.id for opportunity in opportunities.filter(stage="CLOSED WON")]
+
+            for opportunity in opportunities:
+                if opportunity.stage in [
+                    "QUALIFICATION",
+                    "NEEDS ANALYSIS",
+                    "VALUE PROPOSITION",
+                    "ID.DECISION MAKERS",
+                    "PERCEPTION ANALYSIS",
+                    "PROPOSAL/PRICE QUOTE",
+                    "NEGOTIATION/REVIEW",
+                ]:
+                    opportunity_ids.append(opportunity.id)
+                elif opportunity.stage == "CLOSED WON":
+                    categories.setdefault("Customer", []).append(opportunity.id)
+
+            if opportunity_ids:
+                categories["Opportunity"] = opportunity_ids
+
+            # Remove 'Customer' if 'Loyal Customer' exists
+            if "Loyal Customer" in categories and "Customer" in categories:
+                del categories["Customer"]
+
+        except Exception as e:
+            categories["error"] = str(e)
+
+        return categories
 
     @extend_schema(
         tags=["contacts"], parameters=swagger_params1.contact_list_get_params
