@@ -6,7 +6,7 @@ import { FiChevronRight } from "@react-icons/all-files/fi/FiChevronRight";
 import { getComparator, stableSort } from '../../components/Sorting';
 import { Spinner } from '../../components/Spinner';
 import { fetchData } from '../../components/FetchData';
-import { ContactCategoryUrl, ContactUrl, SERVER } from '../../services/ApiUrls';
+import { ContactUrl } from '../../services/ApiUrls';
 import { useNavigate } from 'react-router-dom';
 import { FaTrashAlt } from 'react-icons/fa';
 import { DeleteModal } from '../../components/DeleteModal';
@@ -65,46 +65,22 @@ export default function Contacts() {
         try {
             const offset = (currentPage - 1) * recordsPerPage;
             const data = await fetchData(`${ContactUrl}/?offset=${offset}&limit=${recordsPerPage}`, 'GET', null as any, Header);
-
-            if (!data.error) {
-                const contactListWithCategories = await Promise.all(
-                    data.contact_obj_list.map(async (contact: any) => {
-                        const categories = await getContactCategories(contact.id);
-                        return { ...contact, categories };
-                    })
-                );
-                setContactList(contactListWithCategories as any[]);
-                setCountries(data.countries);
-                setTotalPages(Math.ceil(data.contacts_count / recordsPerPage));
-                setLoading(false);
-            }
+            setContactList(data.contact_obj_list);
+            setCountries(data.countries);
+            setTotalPages(Math.ceil(data.contacts_count / recordsPerPage));
+            setLoading(false);
         } catch (error) {
             console.error('Error fetching contacts:', error);
-        }
-    };
-
-    const getContactCategories = async (contactId: string) => {
-        try {
-            const response = await fetch(`${SERVER}${ContactCategoryUrl}/${contactId}/`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            const categoryData = await response.json();
-            return categoryData.categories || [];
-        } catch (error) {
-            console.error(`Error fetching categories for contact ${contactId}:`, error);
-            return [''];
         }
     };
 
     const handleChipClick = (category: string, id: number) => {
         if (category === 'Lead') {
             navigate(`/app/leads/lead-details`, { state: { leadId: id, detail: true } });
-        } else if (category === 'Opportunity') {
+        } else if (category === 'Opportunity' || category === 'Customer' || category === 'Loyal Customer') {
             navigate(`/app/opportunities/opportunity-details`, { state: { opportunityId: id, detail: true } });
         }
+        // for customer
     };
 
     const handleRequestSort = (event: any, property: any) => {
