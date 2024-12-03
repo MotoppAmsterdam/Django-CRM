@@ -1,4 +1,8 @@
-import { Box, Button, Card, Stack, Tab, Table, TableBody, TableContainer, TableHead, TableRow, Tabs, Toolbar, Typography, Paper, Select, MenuItem, TableCell, TableSortLabel, Container, Skeleton, Chip } from '@mui/material'
+import {
+    Box, Button, Card, Stack, Tab, Table, TableBody, TableContainer, TableHead,
+    TableRow, Tabs, Toolbar, Typography, Paper, Select, MenuItem,
+    TableCell, TableSortLabel, Container, Skeleton, Chip, Menu
+} from '@mui/material'
 import React, { useEffect, useState } from 'react'
 import { FiPlus } from "@react-icons/all-files/fi/FiPlus";
 import { FiChevronLeft } from "@react-icons/all-files/fi/FiChevronLeft";
@@ -50,6 +54,8 @@ export default function Contacts() {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [recordsPerPage, setRecordsPerPage] = useState<number>(10);
     const [totalPages, setTotalPages] = useState<number>(0);
+    const [filterCategory, setFilterCategory] = useState<string | null>(null); // State for selected category
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // State for dropdown anchor
 
     useEffect(() => {
         getContacts();
@@ -125,6 +131,22 @@ export default function Contacts() {
         setSelectedId('');
     };
 
+    // Function to handle dropdown opening
+    const handleCategoryClick = (event: React.MouseEvent<HTMLTableHeaderCellElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    // Function to handle dropdown closing
+    const handleCategoryClose = () => {
+        setAnchorEl(null);
+    };
+
+    // Function to select a category and filter
+    const handleCategorySelect = (category: string | null) => {
+        setFilterCategory(category);
+        handleCategoryClose();
+    };
+
     const DeleteItem = async () => {
         const Header = {
             Accept: 'application/json',
@@ -166,11 +188,32 @@ export default function Contacts() {
                                 order={order}
                                 orderBy={orderBy}
                                 onRequestSort={handleRequestSort}
-                                headCells={headCells}
+                                headCells={headCells.map((headCell) =>
+                                    headCell.id === 'categories'
+                                        ? {
+                                            ...headCell,
+                                            label: (
+                                                <span
+                                                    onClick={handleCategoryClick} // Open dropdown on click
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    {headCell.label}
+                                                </span>
+                                            ),
+                                        }
+                                        : headCell
+                                )}
                             />
                             <TableBody>
                                 {contactList?.length
-                                    ? stableSort(contactList, getComparator(order, orderBy)).map((item: any, index: any) => (
+                                    ? stableSort(
+                                        contactList.filter(
+                                            (item) =>
+                                                !filterCategory || // No filter applied
+                                                Object.keys(item.categories || {}).includes(filterCategory)
+                                        ),
+                                        getComparator(order, orderBy)
+                                    ).map((item: any, index: any) => (
                                         <TableRow
                                             key={index}
                                             sx={{
@@ -213,6 +256,28 @@ export default function Contacts() {
                     </TableContainer>
                     {loading && <Spinner />}
                 </Paper>
+
+                {/* Dropdown Menu */}
+                <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleCategoryClose}
+                    anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'center',
+                    }}
+                    transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'center',
+                    }}
+                >
+                    <MenuItem onClick={() => handleCategorySelect(null)}>All Categories</MenuItem>
+                    {Object.keys(categoryStyles).map((category) => (
+                        <MenuItem key={category} onClick={() => handleCategorySelect(category)}>
+                            {category}
+                        </MenuItem>
+                    ))}
+                </Menu>
 
                 {/* Pagination */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
