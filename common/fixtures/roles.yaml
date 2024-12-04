@@ -205,7 +205,7 @@
   pk: SALES_REPRESENTATIVE
   fields:
     name: SALES_REPRESENTATIVE
-    permissions: ["add_lead", "get_lead", "edit_lead", "delete_lead", "get_opportunity", "add_opportunity", "edit_opportunity", "delete_opportunity"]
+    permissions: ["get_lead", "edit_lead", "get_opportunity", "add_opportunity", "edit_opportunity", "delete_opportunity"]
 - model: common.role
   pk: EMPLOYEE
   fields:
