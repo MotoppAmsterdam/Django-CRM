@@ -44,28 +44,26 @@ from leads.tasks import (
 )
 from teams.models import Teams
 from teams.serializer import TeamsSerializer
+from common.crm_permissions import crm_permissions
 
 
 class LeadListView(APIView, LimitOffsetPagination):
     model = Lead
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (crm_permissions(get="get_lead", post="add_lead"),)
 
     def get_context_data(self, **kwargs):
         params = self.request.query_params
         queryset = (
             self.model.objects.filter(org=self.request.profile.org)
-            # .exclude(status="converted")
-            .select_related("created_by")
-            .prefetch_related( 
+            .prefetch_related(
                 "tags",
                 "assigned_to",
             )
         ).order_by("-id")
         if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
             queryset = queryset.filter(
-                # Q(assigned_to__in=[self.request.profile])
-                Q(assigned_to=self.request.profile)  # Directly match the profile object
-                | Q(created_by=self.request.profile.user)
+                Q(assigned_to__pk=self.request.profile.id)  # Directly match the profile object
+                | Q(created_by__pk=self.request.profile.user.id)
             )
 
         if params:
@@ -154,11 +152,12 @@ class LeadListView(APIView, LimitOffsetPagination):
         return Response(context)
 
     @extend_schema(
-        tags=["Leads"],description="Leads Create", parameters=swagger_params1.organization_params,request=LeadCreateSwaggerSerializer
+        tags=["Leads"],
+        description="Leads Create",
+        parameters=swagger_params1.organization_params,
+        request=LeadCreateSwaggerSerializer
     )
     def post(self, request, *args, **kwargs):
-
-        print('test')
         data = request.data
         serializer = LeadCreateSerializer(data=data, request_obj=request)
         if serializer.is_valid():
@@ -261,7 +260,7 @@ class LeadListView(APIView, LimitOffsetPagination):
 class LeadDetailView(APIView):
     model = Lead
     #authentication_classes = (CustomDualAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (crm_permissions(get="get_lead", put="edit_lead", delete="delete_lead"),)
 
     def get_object(self, pk):
         return get_object_or_404(Lead, id=pk)
@@ -300,7 +299,9 @@ class LeadDetailView(APIView):
                 )
             )
         elif self.request.profile.user != self.lead_obj.created_by:
-            users_mention = [{"username": self.lead_obj.created_by.username}]
+            # TODO: - Check if the username field is being used on front-end!
+            # users_mention = [{"username": self.lead_obj.created_by.username}]
+            users_mention = [{"email": self.lead_obj.created_by.email}]
         else:
             users_mention = list(
                 self.lead_obj.assigned_to.all().values("user__email")
@@ -355,13 +356,13 @@ class LeadDetailView(APIView):
 
         return context
 
-    @extend_schema(tags=["Leads"],parameters=swagger_params1.organization_params,description="Lead Detail")
+    @extend_schema(tags=["Leads"], parameters=swagger_params1.organization_params, description="Lead Detail")
     def get(self, request, pk, **kwargs):
         self.lead_obj = self.get_object(pk)
         context = self.get_context_data(**kwargs)
         return Response(context)
 
-    @extend_schema(tags=["Leads"], parameters=swagger_params1.organization_params,request=LeadDetailEditSwaggerSerializer)
+    @extend_schema(tags=["Leads"], parameters=swagger_params1.organization_params, request=LeadDetailEditSwaggerSerializer)
     def post(self, request, pk, **kwargs):
         params = request.data
 
