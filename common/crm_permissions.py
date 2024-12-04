@@ -41,6 +41,7 @@ class CrmPermissions(IsAuthenticated):
             profile = Profile.objects.get(user_id=user_id)
             role_permissions = Permission.objects.filter(roles=profile.role).all()
             user_permissions = set(map(lambda x: x.name, role_permissions))
+
             if self.get and request.method == 'GET':
                 return self.get in user_permissions
 
@@ -55,6 +56,9 @@ class CrmPermissions(IsAuthenticated):
 
             elif self.delete and request.method == 'DELETE':
                 return self.delete in user_permissions
+
+            else:
+                return True
 
         return False
 
