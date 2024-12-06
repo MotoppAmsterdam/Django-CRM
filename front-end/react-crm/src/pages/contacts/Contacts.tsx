@@ -59,7 +59,7 @@ export default function Contacts() {
 
     useEffect(() => {
         getContacts();
-    }, [currentPage, recordsPerPage]);
+    }, [currentPage, recordsPerPage, filterCategory]);
 
     const getContacts = async () => {
         const Header = {
@@ -68,15 +68,34 @@ export default function Contacts() {
             Authorization: localStorage.getItem('Token'),
             org: localStorage.getItem('org')
         };
+
         try {
+            // Calculate offset for pagination
             const offset = (currentPage - 1) * recordsPerPage;
-            const data = await fetchData(`${ContactUrl}/?offset=${offset}&limit=${recordsPerPage}`, 'GET', null as any, Header);
-            setContactList(data.contact_obj_list);
-            setCountries(data.countries);
-            setTotalPages(Math.ceil(data.contacts_count / recordsPerPage));
-            setLoading(false);
+
+            // Add category filter if selected
+            const categoryFilter = filterCategory ? `&category=${filterCategory}` : '';
+
+            console.log(categoryFilter);
+
+            // Fetch data from the back-end with pagination and filtering
+            const data = await fetchData(
+                `${ContactUrl}/?offset=${offset}&limit=${recordsPerPage}${categoryFilter}`,
+                'GET',
+                null as any,
+                Header
+            );
+
+            console.log(data.contact_obj_list);
+
+            // Update states with the response
+            setContactList(data.contact_obj_list); // Update contact list
+            setCountries(data.countries); // Update countries if provided
+            setTotalPages(Math.ceil(data.contacts_count / recordsPerPage)); // Calculate total pages
+            setLoading(false); // Stop the loading spinner
         } catch (error) {
             console.error('Error fetching contacts:', error);
+            setLoading(false); // Stop the loading spinner on error
         }
     };
 
@@ -141,9 +160,14 @@ export default function Contacts() {
         setAnchorEl(null);
     };
 
-    // Function to select a category and filter
     const handleCategorySelect = (category: string | null) => {
+        // Update the selected filter category
         setFilterCategory(category);
+
+        // Reset to the first page when a new filter is applied
+        setCurrentPage(1);
+
+        // Close the dropdown and fetch new data
         handleCategoryClose();
     };
 
@@ -207,11 +231,7 @@ export default function Contacts() {
                             <TableBody>
                                 {contactList?.length
                                     ? stableSort(
-                                        contactList.filter(
-                                            (item) =>
-                                                !filterCategory || // No filter applied
-                                                Object.keys(item.categories || {}).includes(filterCategory)
-                                        ),
+                                        contactList,
                                         getComparator(order, orderBy)
                                     ).map((item: any, index: any) => (
                                         <TableRow
@@ -246,7 +266,10 @@ export default function Contacts() {
                                                 )}
                                             </TableCell>
                                             <TableCell>
-                                                <FaTrashAlt style={{ cursor: 'pointer' }} onClick={() => deleteRow(item.id)} />
+                                                <FaTrashAlt
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => deleteRow(item.id)}
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     ))
