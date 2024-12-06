@@ -2,6 +2,7 @@ import json
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from cms.blocks import Count
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.pagination import LimitOffsetPagination
@@ -17,7 +18,7 @@ from common.serializer import (
 )
 from common.utils import COUNTRIES
 
-#from common.external_auth import CustomDualAuthentication
+# from common.external_auth import CustomDualAuthentication
 from contacts import swagger_params1
 from contacts.models import Contact, Profile
 from contacts.serializer import *
@@ -27,13 +28,14 @@ from teams.models import Teams
 
 
 class ContactsListView(APIView, LimitOffsetPagination):
-    #authentication_classes = (CustomDualAuthentication,)
+    # authentication_classes = (CustomDualAuthentication,)
     permission_classes = (IsAuthenticated,)
     model = Contact
 
     def get_context_data(self, **kwargs):
         params = self.request.query_params
-        queryset = self.model.objects.filter(org=self.request.profile.org).order_by("-id")
+        queryset = self.model.objects.filter(
+            org=self.request.profile.org).order_by("-id")
         if self.request.profile.role != "ADMIN" and not self.request.profile.is_admin:
             queryset = queryset.filter(
                 Q(assigned_to__in=[self.request.profile])
@@ -42,17 +44,26 @@ class ContactsListView(APIView, LimitOffsetPagination):
 
         if params:
             if params.get("name"):
-                queryset = queryset.filter(first_name__icontains=params.get("name"))
+                queryset = queryset.filter(
+                    first_name__icontains=params.get("name"))
             if params.get("city"):
-                queryset = queryset.filter(address__city__icontains=params.get("city"))
+                queryset = queryset.filter(
+                    address__city__icontains=params.get("city"))
             if params.get("phone"):
-                queryset = queryset.filter(mobile_number__icontains=params.get("phone"))
+                queryset = queryset.filter(
+                    mobile_number__icontains=params.get("phone"))
             if params.get("email"):
-                queryset = queryset.filter(primary_email__icontains=params.get("email"))
+                queryset = queryset.filter(
+                    primary_email__icontains=params.get("email"))
             if params.getlist("assigned_to"):
                 queryset = queryset.filter(
                     assigned_to__id__in=params.get("assigned_to")
                 ).distinct()
+
+            if params.get("category"):
+                category = params.get("category")
+                category_contact_ids = self.get_contact_ids_by_category(category)
+                queryset = queryset.filter(id__in=category_contact_ids)
 
         context = {}
         results_contact = self.paginate_queryset(
@@ -60,7 +71,6 @@ class ContactsListView(APIView, LimitOffsetPagination):
         )
         contacts = ContactSerializer(results_contact, many=True).data
 
-        # Add categories for each contact
         for contact in contacts:
             contact_id = contact.get("id")
             if contact_id:
@@ -86,6 +96,36 @@ class ContactsListView(APIView, LimitOffsetPagination):
 
         return context
     
+    def get_contact_ids_by_category(self, category):
+        """
+        Get contact IDs that belong to the specified category.
+        """
+        from leads.models import Lead
+        from opportunity.models import Opportunity
+
+        if category == "Lead":
+            return Lead.objects.filter(
+                Q(status__in=["in process", "assigned"]) & Q(contacts__isnull=False)
+            ).values_list("contacts__id", flat=True)
+
+        elif category == "Opportunity":
+            return Opportunity.objects.filter(
+                stage__in=[
+                    "QUALIFICATION", "NEEDS ANALYSIS", "VALUE PROPOSITION", "ID.DECISION MAKERS",
+                    "PERCEPTION ANALYSIS", "PROPOSAL/PRICE QUOTE", "NEGOTIATION/REVIEW"
+                ]
+            ).values_list("contacts__id", flat=True)
+
+        elif category == "Customer":
+            return Opportunity.objects.filter(stage="CLOSED WON").values_list("contacts__id", flat=True)
+
+        elif category == "Loyal Customer":
+            return Opportunity.objects.filter(stage="CLOSED WON") \
+                .annotate(count=Count("id")).filter(count__gt=1) \
+                .values_list("contacts__id", flat=True)
+
+        return []
+
     def get_contact_categories(self, contact_id):
         """
         Fetch the categories for a given contact based on its associated leads and opportunities.
@@ -111,7 +151,8 @@ class ContactsListView(APIView, LimitOffsetPagination):
             closed_won_count = opportunities.filter(stage="CLOSED WON").count()
 
             if closed_won_count > 1:
-                categories["Loyal Customer"] = [opportunity.id for opportunity in opportunities.filter(stage="CLOSED WON")]
+                categories["Loyal Customer"] = [
+                    opportunity.id for opportunity in opportunities.filter(stage="CLOSED WON")]
 
             for opportunity in opportunities:
                 if opportunity.stage in [
@@ -125,7 +166,8 @@ class ContactsListView(APIView, LimitOffsetPagination):
                 ]:
                     opportunity_ids.append(opportunity.id)
                 elif opportunity.stage == "CLOSED WON":
-                    categories.setdefault("Customer", []).append(opportunity.id)
+                    categories.setdefault(
+                        "Customer", []).append(opportunity.id)
 
             if opportunity_ids:
                 categories["Opportunity"] = opportunity_ids
@@ -147,11 +189,12 @@ class ContactsListView(APIView, LimitOffsetPagination):
         return Response(context)
 
     @extend_schema(
-        tags=["contacts"], parameters=swagger_params1.organization_params,request=CreateContactSerializer
+        tags=["contacts"], parameters=swagger_params1.organization_params, request=CreateContactSerializer
     )
     def post(self, request, *args, **kwargs):
         params = request.data
-        contact_serializer = CreateContactSerializer(data=params, request_obj=request)
+        contact_serializer = CreateContactSerializer(
+            data=params, request_obj=request)
         address_serializer = BillingAddressSerializer(data=params)
 
         data = {}
@@ -166,22 +209,26 @@ class ContactsListView(APIView, LimitOffsetPagination):
             )
         # if contact_serializer.is_valid() and address_serializer.is_valid():
         address_obj = address_serializer.save()
-        contact_obj = contact_serializer.save(date_of_birth=params.get("date_of_birth"))
+        contact_obj = contact_serializer.save(
+            date_of_birth=params.get("date_of_birth"))
         contact_obj.address = address_obj
         contact_obj.org = request.profile.org
         contact_obj.save()
 
         if params.get("teams"):
             teams_list = params.get("teams")
-            teams = Teams.objects.filter(id__in=teams_list, org=request.profile.org)
+            teams = Teams.objects.filter(
+                id__in=teams_list, org=request.profile.org)
             contact_obj.teams.add(*teams)
 
         if params.get("assigned_to"):
             assinged_to_list = params.get("assigned_to")
-            profiles = Profile.objects.filter(id__in=assinged_to_list, org=request.profile.org)
+            profiles = Profile.objects.filter(
+                id__in=assinged_to_list, org=request.profile.org)
             contact_obj.assigned_to.add(*profiles)
 
-        recipients = list(contact_obj.assigned_to.all().values_list("id", flat=True))
+        recipients = list(
+            contact_obj.assigned_to.all().values_list("id", flat=True))
         send_email_to_assigned_user.delay(
             recipients,
             contact_obj.id,
@@ -209,7 +256,7 @@ class ContactDetailView(APIView):
         return get_object_or_404(Contact, pk=pk)
 
     @extend_schema(
-        tags=["contacts"], parameters=swagger_params1.contact_create_post_params,request=CreateContactSerializer
+        tags=["contacts"], parameters=swagger_params1.contact_create_post_params, request=CreateContactSerializer
     )
     def put(self, request, pk, format=None):
         data = request.data
@@ -223,7 +270,8 @@ class ContactDetailView(APIView):
         contact_serializer = CreateContactSerializer(
             data=data, instance=contact_obj, request_obj=request
         )
-        address_serializer = BillingAddressSerializer(data=data, instance=address_obj)
+        address_serializer = BillingAddressSerializer(
+            data=data, instance=address_obj)
         data = {}
         if not contact_serializer.is_valid():
             data["contact_errors"] = contact_serializer.errors
@@ -263,7 +311,8 @@ class ContactDetailView(APIView):
             contact_obj.teams.clear()
             if data.get("teams"):
                 teams_list = json.loads(data.get("teams"))
-                teams = Teams.objects.filter(id__in=teams_list, org=request.profile.org)
+                teams = Teams.objects.filter(
+                    id__in=teams_list, org=request.profile.org)
                 contact_obj.teams.add(*teams)
 
             contact_obj.assigned_to.clear()
@@ -281,7 +330,8 @@ class ContactDetailView(APIView):
             assigned_to_list = list(
                 contact_obj.assigned_to.all().values_list("id", flat=True)
             )
-            recipients = list(set(assigned_to_list) - set(previous_assigned_to_users))
+            recipients = list(set(assigned_to_list) -
+                              set(previous_assigned_to_users))
             send_email_to_assigned_user.delay(
                 recipients,
                 contact_obj.id,
@@ -289,7 +339,8 @@ class ContactDetailView(APIView):
             if request.FILES.get("contact_attachment"):
                 attachment = Attachments()
                 attachment.created_by = request.profile.user
-                attachment.file_name = request.FILES.get("contact_attachment").name
+                attachment.file_name = request.FILES.get(
+                    "contact_attachment").name
                 attachment.contact = contact_obj
                 attachment.attachment = request.FILES.get("contact_attachment")
                 attachment.save()
@@ -309,7 +360,8 @@ class ContactDetailView(APIView):
             assigned_to.id for assigned_to in contact_obj.assigned_to.all()
         ]
         user_assigned_accounts = set(
-            self.request.profile.account_assigned_users.values_list("id", flat=True)
+            self.request.profile.account_assigned_users.values_list(
+                "id", flat=True)
         )
         contact_accounts = set(
             contact_obj.account_contacts.values_list("id", flat=True)
@@ -343,12 +395,14 @@ class ContactDetailView(APIView):
         elif self.request.profile != contact_obj.created_by:
             users_mention = [{"username": contact_obj.created_by.user.email}]
         else:
-            users_mention = list(contact_obj.assigned_to.all().values("user__email"))
+            users_mention = list(
+                contact_obj.assigned_to.all().values("user__email"))
 
         if request.profile == contact_obj.created_by:
             user_assgn_list.append(self.request.profile.id)
 
-        context["address_obj"] = BillingAddressSerializer(contact_obj.address).data
+        context["address_obj"] = BillingAddressSerializer(
+            contact_obj.address).data
         context["countries"] = COUNTRIES
         context.update(
             {
@@ -398,7 +452,7 @@ class ContactDetailView(APIView):
         )
 
     @extend_schema(
-        tags=["contacts"], parameters=swagger_params1.organization_params,request=ContactDetailEditSwaggerSerializer
+        tags=["contacts"], parameters=swagger_params1.organization_params, request=ContactDetailEditSwaggerSerializer
     )
     def post(self, request, pk, **kwargs):
         params = request.data
@@ -428,9 +482,11 @@ class ContactDetailView(APIView):
         if self.request.FILES.get("contact_attachment"):
             attachment = Attachments()
             attachment.created_by = self.request.profile.user
-            attachment.file_name = self.request.FILES.get("contact_attachment").name
+            attachment.file_name = self.request.FILES.get(
+                "contact_attachment").name
             attachment.contact = self.contact_obj
-            attachment.attachment = self.request.FILES.get("contact_attachment")
+            attachment.attachment = self.request.FILES.get(
+                "contact_attachment")
             attachment.save()
 
         comments = Comment.objects.filter(contact__id=self.contact_obj.id).order_by(
@@ -458,7 +514,7 @@ class ContactCommentView(APIView):
         return self.model.objects.get(pk=pk)
 
     @extend_schema(
-        tags=["contacts"], parameters=swagger_params1.organization_params,request=ContactCommentEditSwaggerSerializer
+        tags=["contacts"], parameters=swagger_params1.organization_params, request=ContactCommentEditSwaggerSerializer
     )
     def put(self, request, pk, format=None):
         params = request.data
