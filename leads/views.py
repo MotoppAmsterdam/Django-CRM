@@ -60,7 +60,7 @@ class LeadListView(APIView, LimitOffsetPagination):
                 "assigned_to",
             )
         ).order_by("-id")
-        if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
+        if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             queryset = queryset.filter(
                 Q(assigned_to__pk=self.request.profile.id)  # Directly match the profile object
                 | Q(created_by__pk=self.request.profile.user.id)
@@ -272,8 +272,8 @@ class LeadDetailView(APIView):
             assigned_to.id for assigned_to in self.lead_obj.assigned_to.all()
         ]
         if self.request.profile.user == self.lead_obj.created_by:
-            user_assgn_list.append(self.request.profile.user)
-        if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
+            user_assgn_list.append(self.request.profile.id)
+        if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             if self.request.profile.id not in user_assgn_list:
                 return Response(
                     {
@@ -373,7 +373,7 @@ class LeadDetailView(APIView):
                 {"error": True, "errors": "User company doesnot match with header...."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if self.request.profile.role != "ADMIN" and not self.request.user.is_superuser:
+        if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             if not (
                 (self.request.profile.user == self.lead_obj.created_by)
                 or (self.request.profile in self.lead_obj.assigned_to.all())
