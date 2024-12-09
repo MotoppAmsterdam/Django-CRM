@@ -1,6 +1,6 @@
 import json
 
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, IntegerField
 from django.shortcuts import get_object_or_404
 from cms.blocks import Count
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
@@ -64,6 +64,32 @@ class ContactsListView(APIView, LimitOffsetPagination):
                 category = params.get("category")
                 category_contact_ids = self.get_contact_ids_by_category(category)
                 queryset = queryset.filter(id__in=category_contact_ids)
+
+            # Check for sorting criteria
+            if params.get("sorting-criteria") == "category":
+                # Add sorting logic for categories
+                queryset = queryset.annotate(
+                    category_order=Case(
+                        When(
+                            id__in=self.get_contact_ids_by_category("Lead"), 
+                            then=Value(1)
+                        ),
+                        When(
+                            id__in=self.get_contact_ids_by_category("Opportunity"), 
+                            then=Value(2)
+                        ),
+                        When(
+                            id__in=self.get_contact_ids_by_category("Customer"), 
+                            then=Value(3)
+                        ),
+                        # When(
+                        #     id__in=self.get_contact_ids_by_category("Loyal Customer"), 
+                        #     then=Value(4)
+                        # ),
+                        default=Value(4),
+                        output_field=IntegerField(),
+                    )
+                ).order_by("category_order", "-id")  # Sort by category order, then by ID
 
         context = {}
         results_contact = self.paginate_queryset(

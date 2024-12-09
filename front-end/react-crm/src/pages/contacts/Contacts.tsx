@@ -48,6 +48,7 @@ export default function Contacts() {
 
     const [value, setValue] = useState('Open');
     const [loading, setLoading] = useState(true);
+    const [loadingFiltSort, setLoadingFiltSort] = useState(false);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [contactList, setContactList] = useState<any[]>([]);
@@ -62,10 +63,12 @@ export default function Contacts() {
     const [filterCategory, setFilterCategory] = useState<string | null>(null); // State for selected category
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // State for dropdown anchor
     const [selectOpen, setSelectOpen] = useState(false);
+    const [sortCriteria, setSortCriteria] = useState<string | null>(null); // Sorting criteria state
+    const [anchorElSort, setAnchorElSort] = useState<null | HTMLElement>(null); // State for sorting dropdown anchor
 
     useEffect(() => {
         getContacts();
-    }, [currentPage, recordsPerPage, filterCategory]);
+    }, [currentPage, recordsPerPage, filterCategory, sortCriteria]);
 
     const getContacts = async () => {
         const Header = {
@@ -81,24 +84,22 @@ export default function Contacts() {
 
             // Add category filter if selected
             const categoryFilter = filterCategory ? `&category=${filterCategory}` : '';
-
-            console.log(categoryFilter);
+            const sortingFilter = sortCriteria ? `&sorting-criteria=${sortCriteria}` : '';
 
             // Fetch data from the back-end with pagination and filtering
             const data = await fetchData(
-                `${ContactUrl}/?offset=${offset}&limit=${recordsPerPage}${categoryFilter}`,
+                `${ContactUrl}/?offset=${offset}&limit=${recordsPerPage}${categoryFilter}${sortingFilter}`,
                 'GET',
                 null as any,
                 Header
             );
-
-            console.log(data.contact_obj_list);
 
             // Update states with the response
             setContactList(data.contact_obj_list); // Update contact list
             setCountries(data.countries); // Update countries if provided
             setTotalPages(Math.ceil(data.contacts_count / recordsPerPage)); // Calculate total pages
             setLoading(false); // Stop the loading spinner
+            setLoadingFiltSort(false);
         } catch (error) {
             console.error('Error fetching contacts:', error);
             setLoading(false); // Stop the loading spinner on error
@@ -167,6 +168,7 @@ export default function Contacts() {
     };
 
     const handleCategorySelect = (category: string | null) => {
+        setLoadingFiltSort(true);
         // Update the selected filter category
         setFilterCategory(category);
 
@@ -175,6 +177,20 @@ export default function Contacts() {
 
         // Close the dropdown and fetch new data
         handleCategoryClose();
+    };
+
+    const handleSortClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        setAnchorElSort(event.currentTarget);
+    };
+
+    const handleSortClose = () => {
+        setAnchorElSort(null);
+    };
+
+    const handleSortSelection = (criteria: string) => {
+        setLoadingFiltSort(true); // Start loading
+        setSortCriteria(criteria);
+        handleSortClose();
     };
 
     const DeleteItem = async () => {
@@ -251,11 +267,35 @@ export default function Contacts() {
 
                     <Paper sx={{ width: 'cal(100%-15px)', mb: 2, p: '15px' }}>
                         <TableContainer>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    cursor: 'pointer',
+                                    padding: '8px 16px',
+                                    border: '1px solid #ccc',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#f9f9f9',
+                                    mr: 2,
+                                    ml: "auto",
+                                    width: "240px"
+                                }}
+                                onClick={handleSortClick}
+                            >
+                                <Typography variant="body2" sx={{ mr: 1 }}>
+                                    Sort by: {sortCriteria ? `${sortCriteria}` : ''}
+                                </Typography>
+                                <FiChevronDown />
+                            </Box>
                             <Table>
                                 <EnhancedTableHead
                                     order={order}
                                     orderBy={orderBy}
-                                    onRequestSort={handleRequestSort}
+                                    onRequestSort={(event: React.MouseEvent<unknown>, property: string) => {
+                                        if (property !== 'categories') {
+                                            handleRequestSort(event, property);
+                                        }
+                                    }}
                                     headCells={headCells.map((headCell) =>
                                         headCell.id === 'categories'
                                             ? {
@@ -273,10 +313,16 @@ export default function Contacts() {
                                     )}
                                 />
                                 <TableBody>
-                                    {contactList?.length
-                                        ? stableSort(
-                                            contactList,
-                                            getComparator(order, orderBy)
+                                    {loadingFiltSort ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5}>
+                                                <Spinner /> {/* Replace with your loading component */}
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : contactList?.length
+                                        ? (sortCriteria // Check if back-end sorting is applied
+                                            ? contactList // Use the already sorted list from the back-end
+                                            : stableSort(contactList, getComparator(order, orderBy)) // Fallback to front-end sorting
                                         ).map((item: any, index: any) => (
                                             <TableRow
                                                 key={index}
@@ -292,21 +338,27 @@ export default function Contacts() {
                                                 <TableCell>{item.primary_email}</TableCell>
                                                 <TableCell>{item.mobile_number || '---'}</TableCell>
                                                 <TableCell>
-                                                    {Object.entries(item.categories || {}).map(([category, ids]) =>
-                                                        (ids as number[]).map((id: number) => (
-                                                            <Chip
-                                                                key={`${category}-${id}`}
-                                                                label={`${category}`}
-                                                                clickable
-                                                                onClick={() => handleChipClick(category, id)}
-                                                                sx={{
-                                                                    backgroundColor: categoryStyles[category]?.backgroundColor,
-                                                                    border: `1px solid ${categoryStyles[category]?.borderColor}`,
-                                                                    color: categoryStyles[category]?.borderColor,
-                                                                    margin: '0 4px',
-                                                                }}
-                                                            />
-                                                        ))
+                                                    {item.categories && Object.keys(item.categories).length > 0 ? (
+                                                        Object.entries(item.categories || {}).map(([category, ids]) =>
+                                                            (ids as number[]).map((id: number) => (
+                                                                <Chip
+                                                                    key={`${category}-${id}`}
+                                                                    label={`${category}`}
+                                                                    clickable
+                                                                    onClick={() => handleChipClick(category, id)}
+                                                                    sx={{
+                                                                        backgroundColor: categoryStyles[category]?.backgroundColor,
+                                                                        border: `1px solid ${categoryStyles[category]?.borderColor}`,
+                                                                        color: categoryStyles[category]?.borderColor,
+                                                                        margin: '0 4px',
+                                                                    }}
+                                                                />
+                                                            ))
+                                                        )
+                                                    ) : (
+                                                        <Typography variant="body2" sx={{ color: 'gray' }}>
+                                                            Has no special category
+                                                        </Typography>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
@@ -375,6 +427,29 @@ export default function Contacts() {
                     </Box>
                 </Box>
             </Container>
+
+            <Menu
+                anchorEl={anchorElSort}
+                open={Boolean(anchorElSort)}
+                onClose={handleSortClose}
+                anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'left',
+                }}
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'left',
+                }}
+                sx={{
+                    '& .MuiMenu-paper': {
+                        width: "240px"
+                    },
+                }}
+            >
+                <MenuItem onClick={() => handleSortSelection('category')}>Category</MenuItem>
+                <MenuItem onClick={() => handleSortSelection('category')}>Name</MenuItem>
+                <MenuItem onClick={() => handleSortSelection('category')}>Email</MenuItem>
+            </Menu>
 
             {/* Delete Modal */}
             <DeleteModal
