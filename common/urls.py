@@ -35,7 +35,6 @@ urlpatterns = [
         name='user-registration'),
     path('auth/verify-email/<str:activation_key>/', views.VerifyEmailForRegistrationView.as_view(),
         name='verify-email'), 
-    path('contact-category/<str:contact_id>/', views.ContactCategoryView.as_view(), name='contact-category'),
     path("roles", views.RolesView.as_view()),
     path("roles/<str:pk>", views.RoleView.as_view()),
 ]
