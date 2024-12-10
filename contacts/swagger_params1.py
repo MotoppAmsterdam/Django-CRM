@@ -14,6 +14,7 @@ contact_list_get_params = [
     OpenApiParameter("name", OpenApiTypes.STR,OpenApiParameter.QUERY),
     OpenApiParameter("city", OpenApiTypes.STR,OpenApiParameter.QUERY),
     OpenApiParameter("assigned_to", OpenApiTypes.STR,OpenApiParameter.QUERY),
+    OpenApiParameter("category", OpenApiTypes.STR,OpenApiParameter.QUERY),
 ]
 
 contact_create_post_params = [
