@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import status
@@ -34,7 +35,8 @@ from leads.serializer import (
     LeadDetailEditSwaggerSerializer,
     LeadCommentEditSwaggerSerializer,
     CreateLeadFromSiteSwaggerSerializer,
-    LeadUploadSwaggerSerializer
+    LeadUploadSwaggerSerializer,
+    LeadUpdateStatusSerializer,
 )
 from common.models import User
 from leads.tasks import (
@@ -55,10 +57,8 @@ class LeadListView(APIView, LimitOffsetPagination):
         params = self.request.query_params
         queryset = (
             self.model.objects.filter(org=self.request.profile.org)
-            .prefetch_related(
-                "tags",
-                "assigned_to",
-            )
+                .select_related("created_by")
+                .prefetch_related("tags", "assigned_to",)
         ).order_by("-id")
         if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             queryset = queryset.filter(
@@ -818,4 +818,32 @@ class CompanyDetail(APIView):
                 {"error": False, 'message': 'Deleted successfully'},
                 status=status.HTTP_200_OK,
             )
- 
+
+class LeadStatusUpdate(APIView):
+    permission_classes = (crm_permissions(post="update_lead_status"),)
+
+    @extend_schema(tags=["Leads"], description="Update the lead status",
+                   parameters=swagger_params1.organization_params,
+                   operation_id="updateLeadStatus",
+                   request=LeadUpdateStatusSerializer)
+    def post(self, request, pk):
+        lead = get_object_or_404(Lead, pk=pk)
+        if lead.org != request.profile.org:
+            return Response(
+                {"error": True, "errors": "User company does not match with header...."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        assigned_ids = [assigned_to.id for assigned_to in lead.assigned_to.all()]
+        if request.profile.role.name != "ADMIN" and not request.user.is_superuser:
+            if lead.created_by.id != request.user.id and request.profile.id not in assigned_ids:
+                return Response(
+                    {
+                        "error": True,
+                        "message": "You don't have permission to perform this action",
+                    }
+                )
+        serializer = LeadUpdateStatusSerializer(lead, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"error": False, "message": "Status updated!"},
+                        status=status.HTTP_200_OK)
