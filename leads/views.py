@@ -275,13 +275,7 @@ class LeadDetailView(APIView):
             user_assgn_list.append(self.request.profile.id)
         if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             if self.request.profile.id not in user_assgn_list:
-                return Response(
-                    {
-                        "error": True,
-                        "errors": "You do not have Permission to perform this action",
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                raise PermissionDenied("You do not have Permission to perform this action")
 
         comments = Comment.objects.filter(lead=self.lead_obj).order_by("-id")
         attachments = Attachments.objects.filter(lead=self.lead_obj).order_by("-id")
@@ -323,13 +317,8 @@ class LeadDetailView(APIView):
             user_assgn_list.append(self.request.profile.id)
         if self.request.profile.role.name != "ADMIN" and not self.request.user.is_superuser:
             if self.request.profile.id not in user_assgn_list:
-                return Response(
-                    {
-                        "error": True,
-                        "errors": "You do not have Permission to perform this action",
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                raise PermissionDenied("You do not have Permission to perform this action")
+
         team_ids = [user.id for user in self.lead_obj.get_team_users]
         all_user_ids = [user.id for user in users]
         users_excluding_team_id = set(all_user_ids) - set(team_ids)
