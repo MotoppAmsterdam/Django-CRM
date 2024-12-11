@@ -548,21 +548,22 @@ class OpportunityUpdateStageView(APIView):
     @extend_schema(
         tags=["Opportunities"],
         parameters=swagger_params1.organization_params,
+        description="Update the opportunity stage",
         operation_id="updateOpportunityStage",
         request=OpportunityUpdateStageSerializer
     )
     def post(self, request, pk):
         opportunity = get_object_or_404(Opportunity, pk=pk)
-        serializer = OpportunityUpdateStageSerializer(opportunity, data=request.data)
 
         if opportunity.org != request.profile.org:
             return Response(
                 {"error": True, "errors": "User company does not match with header...."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
         assigned_ids = [assigned_to.id for assigned_to in opportunity.assigned_to.all()]
         if request.profile.role.name != "ADMIN" and not request.user.is_superuser:
-            if opportunity.created_by.id != request.user.id and request.profile.id not in assigned_ids:
+            if opportunity.created_by != request.user and request.profile.id not in assigned_ids:
                 return Response(
                     {
                         "error": True,
@@ -570,7 +571,8 @@ class OpportunityUpdateStageView(APIView):
                     }
                 )
 
+        serializer = OpportunityUpdateStageSerializer(opportunity, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response({"error": False, "message": "Status updated!"},
+        return Response({"error": False, "message": "Stage updated!"},
                         status=status.HTTP_200_OK)
