@@ -92,6 +92,10 @@
   fields:
     name: delete_opportunity
     module: 2
+- model: common.permission
+  fields:
+    name: update_opportunity_status
+    module: 2
 # Accounts
 - model: common.permission
   fields:
