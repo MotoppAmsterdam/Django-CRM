@@ -201,9 +201,17 @@ export function EditLead() {
         };
     }, [quill, hasInitialFocus]);
 
+
     useEffect(() => {
         setFormData(state?.value)
     }, [state?.id])
+
+    // useEffect(() => {
+    //     if (state) {
+    //       setFormData(state.value || {}); // Initialize with passed data
+    //     }
+    //   }, [state]);
+      
 
     useEffect(() => {
         if (reset) {

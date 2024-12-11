@@ -1,6 +1,6 @@
 import React, { SyntheticEvent, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { Avatar, AvatarGroup, Box, Button, Card, List, Stack, Tab, TablePagination, Tabs, Toolbar, Typography, Link, MenuItem, Select } from '@mui/material'
+import { Avatar, AvatarGroup, Box, Button, Card, List, Stack, Tab, TablePagination, Tabs, Toolbar, Typography, Link, MenuItem, Select, Container, Table, TableBody, TableContainer, TableRow, TableCell, Paper, Chip, } from '@mui/material'
 import styled from '@emotion/styled';
 import { LeadUrl } from '../../services/ApiUrls';
 import { DeleteModal } from '../../components/DeleteModal';
@@ -9,7 +9,7 @@ import { fetchData } from '../../components/FetchData';
 import { Spinner } from '../../components/Spinner';
 import FormateTime from '../../components/FormateTime';
 import { getComparator, stableSort } from '../../components/Sorting';
-import { FaTrashAlt } from 'react-icons/fa';
+import { FaTrashAlt, FaEdit } from 'react-icons/fa';
 import { FiChevronUp } from '@react-icons/all-files/fi/FiChevronUp';
 import { FiChevronDown } from '@react-icons/all-files/fi/FiChevronDown';
 import { FiPlus } from "@react-icons/all-files/fi/FiPlus";
@@ -17,6 +17,42 @@ import { FiChevronLeft } from "@react-icons/all-files/fi/FiChevronLeft";
 import { FiChevronRight } from "@react-icons/all-files/fi/FiChevronRight";
 import { CustomTab, CustomToolbar, FabLeft, FabRight } from '../../styles/CssStyled';
 import '../../styles/style.css'
+import { EnhancedTableHead } from '../../components/EnchancedTableHead';
+
+const statusStyles: { [key: string]: { backgroundColor: string; borderColor: string; color: string } } = {
+  assigned: { backgroundColor: '#3E79F761', borderColor: '#3E79F7', color: '#3E79F7' },
+  'in process': { backgroundColor: '#F7C94861', borderColor: '#F7C948', color: '#FFBC00' },
+  converted: { backgroundColor: '#2DCC7061', borderColor: '#2DCC70', color: '#00903D' },
+  recycled: { backgroundColor: '#F7883E61', borderColor: '#F7883E', color: '#FF6905' },
+  closed: { backgroundColor: '#A0A0A061', borderColor: '#A0A0A0', color: '#747474' },
+};
+
+// Fallback style
+const defaultStyle = {
+  backgroundColor: '#E0E0E01A',
+  borderColor: '#E0E0E0',
+  color: '#616161',
+};
+
+interface Company { id: string; name: string; }
+
+interface HeadCell {
+  disablePadding: boolean;
+  id: any;
+  label: string;
+  numeric: boolean;
+}
+
+const headCells: readonly HeadCell[] = [
+  { id: 'title', numeric: false, disablePadding: false, label: 'Name' },
+  { id: 'company', numeric: false, disablePadding: false, label: 'Company' },
+  { id: 'mobile_number', numeric: true, disablePadding: false, label: 'Phone Number' },
+  { id: 'primary_email', numeric: true, disablePadding: false, label: 'Email' },
+  { id: 'country', numeric: false, disablePadding: false, label: 'Country' },
+  { id: 'status', numeric: false, disablePadding: false, label: 'Status' },
+
+  { id: '', numeric: true, disablePadding: false, label: 'Action' }
+];
 
 // import css from './css';
 // import emotionStyled from '@emotion/styled';
@@ -107,8 +143,10 @@ export default function Leads(props: any) {
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [page, setPage] = useState(0)
   const [initial, setInitial] = useState(true)
-  const [order] = useState('asc')
-  const [orderBy] = useState('calories')
+  const [order, setOrder] = useState('asc');
+  const [orderBy, setOrderBy] = useState('first_name')
+  //const [order] = useState('asc')
+  //const [orderBy] = useState('calories')
 
   const [openLeads, setOpenLeads] = useState([])
   const [openLeadsCount, setOpenLeadsCount] = useState(0)
@@ -117,7 +155,7 @@ export default function Leads(props: any) {
   const [contacts, setContacts] = useState([])
   const [status, setStatus] = useState([])
   const [source, setSource] = useState([])
-  const [companies, setCompanies] = useState([])
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [tags, setTags] = useState([])
   const [users, setUsers] = useState([])
   const [countries, setCountries] = useState([])
@@ -163,7 +201,7 @@ export default function Leads(props: any) {
       const closeOffset = (closedCurrentPage - 1) * closedRecordsPerPage;
       await fetchData(`${LeadUrl}/?offset=${tab === "open" ? openOffset : closeOffset}&limit=${tab === "open" ? openRecordsPerPage : closedRecordsPerPage}`, 'GET', null as any, Header)
         .then((res) => {
-          // console.log(res, 'leads')
+          console.log(res, 'leads')
           if (!res.error) {
             // if (initial) {
             setOpenLeads(res?.open_leads?.open_leads)
@@ -206,6 +244,7 @@ export default function Leads(props: any) {
       setOpenLoading(true)
       setOpenRecordsPerPage(parseInt(event.target.value));
       setOpenCurrentPage(1);
+      setRecordsPerPage(parseInt(event.target.value));
     } else {
       setClosedLoading(true)
       setClosedRecordsPerPage(parseInt(event.target.value));
@@ -213,10 +252,21 @@ export default function Leads(props: any) {
     }
 
   };
+
+
+
+
+  const handleRequestSort = (event: any, property: any) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
   const handlePreviousPage = () => {
     if (tab == 'open') {
       setOpenLoading(true)
-      setOpenCurrentPage((prevPage) => Math.max(prevPage - 1, 1));
+      setOpenCurrentPage((prevPage) => Math.min(prevPage - 1, openTotalPages));
+      setCurrentPage((prevPage) => Math.min(prevPage - 1, openTotalPages));
     } else {
       setClosedLoading(true)
       setClosedCurrentPage((prevPage) => Math.max(prevPage - 1, 1));
@@ -227,11 +277,23 @@ export default function Leads(props: any) {
     if (tab == 'open') {
       setOpenLoading(true)
       setOpenCurrentPage((prevPage) => Math.min(prevPage + 1, openTotalPages));
+      setCurrentPage((prevPage) => Math.min(prevPage + 1, openTotalPages));
     } else {
       setClosedLoading(true)
       setClosedCurrentPage((prevPage) => Math.min(prevPage + 1, closedTotalPages));
     }
   };
+
+  const getCompanyName = (companyId: string): string => {
+    console.log(companyId)
+    console.log(companies)
+    const company = companies?.find((c: Company) => c.id === companyId); // Explicitly type `c`
+    console.log(company)
+
+    return company ? company.name : '---'; // Return a placeholder if the company is not found 
+  };
+
+
   const onAddHandle = () => {
     if (!loading) {
       navigate('/app/leads/add-leads', {
@@ -279,6 +341,8 @@ export default function Leads(props: any) {
       })
   }
 
+
+
   const formatDate = (inputDate: string): string => {
     const currentDate = new Date();
     const targetDate = new Date(inputDate);
@@ -307,14 +371,11 @@ export default function Leads(props: any) {
   };
   const recordsList = [[10, '10 Records per page'], [20, '20 Records per page'], [30, '30 Records per page'], [40, '40 Records per page'], [50, '50 Records per page']]
   const tag = ['account', 'leading', 'account', 'leading', 'account', 'leading', 'account', 'account', 'leading', 'account', 'leading', 'account', 'leading', 'leading', 'account', 'account', 'leading', 'account', 'leading', 'account', 'leading', 'account', 'leading', 'account', 'leading', 'account', 'leading']
-  return (
-    <Box sx={{
-      mt: '60px',
-      // width: '1370px' 
-    }}>
 
-      <CustomToolbar>
-        <Tabs defaultValue={tab} onChange={handleChangeTab} sx={{ mt: '26px' }}>
+  return (
+    <Box sx={{ mt: '60px' }}>
+            <CustomToolbar sx={{ flexDirection: 'row-reverse' }}>
+        {/* <Tabs defaultValue={tab} onChange={handleChangeTab} sx={{ mt: '26px' }}>
           <CustomTab value="open" label="Open"
             sx={{
               backgroundColor: tab === 'open' ? '#F0F7FF' : '#284871',
@@ -327,11 +388,11 @@ export default function Leads(props: any) {
               ml: '5px',
             }}
           />
-        </Tabs>
+        </Tabs> */}
 
         <Stack sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
           <Select
-            value={tab === 'open' ? openRecordsPerPage : closedRecordsPerPage}
+            value={recordsPerPage}
             onChange={(e: any) => handleRecordsPerPage(e)}
             open={selectOpen}
             onOpen={() => setSelectOpen(true)}
@@ -354,14 +415,14 @@ export default function Leads(props: any) {
             ))}
           </Select>
           <Box sx={{ borderRadius: '7px', backgroundColor: 'white', height: '40px', minHeight: '40px', maxHeight: '40px', display: 'flex', flexDirection: 'row', alignItems: 'center', mr: 1, p: '0px' }}>
-            <FabLeft onClick={handlePreviousPage} disabled={tab === 'open' ? openCurrentPage === 1 : closedCurrentPage === 1}>
+            <FabLeft onClick={handlePreviousPage} disabled={currentPage === 1}>
               <FiChevronLeft style={{ height: '15px' }} />
             </FabLeft>
             <Typography sx={{ mt: 0, textTransform: 'lowercase', fontSize: '15px', color: '#1A3353', textAlign: 'center' }}>
-              {tab === 'open' ? `${openCurrentPage} to ${openTotalPages}` : `${closedCurrentPage} to ${closedTotalPages}`}
-
+              {currentPage} to {openTotalPages}
+              {/* {renderPageNumbers()} */}
             </Typography>
-            <FabRight onClick={handleNextPage} disabled={tab === 'open' ? (openCurrentPage === openTotalPages) : (closedCurrentPage === closedTotalPages)}>
+            <FabRight onClick={handleNextPage} disabled={currentPage === totalPages}>
               <FiChevronRight style={{ height: '15px' }} />
             </FabRight>
           </Box>
@@ -375,183 +436,110 @@ export default function Leads(props: any) {
           </Button>
         </Stack>
       </CustomToolbar>
+      <Container sx={{ width: '100%' }}>
+        <Paper sx={{ width: '100%', mb: 2, p: '15px' }}>
+          <TableContainer>
+            <Table>
+              <EnhancedTableHead
+                order={order}
+                orderBy={orderBy}
+                onRequestSort={handleRequestSort}
+                headCells={headCells}
+              />
+              <TableBody>
+                {openLeads?.length
+                  ? stableSort(openLeads, getComparator(order, orderBy)).map((item: any, index: any) => (
+                    <TableRow
+                      key={index}
+                      sx={{
+                        border: 0,
+                        '&:nth-of-type(even)': { backgroundColor: 'whitesmoke' },
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      <TableCell onClick={() => selectLeadList(item.id)}>
+                        {item.title}
+                      </TableCell>
+                      <TableCell> {getCompanyName(item.company)}</TableCell>
+                      <TableCell>{item.phone || '---'}</TableCell>
+                      <TableCell>{item.email}</TableCell>
+                      <TableCell> {item.country}</TableCell>
+                      <TableCell>
+                        <Box
+                          sx={{
+                            border: `1px solid ${statusStyles[item.status]?.borderColor || defaultStyle.borderColor}`,
+                            backgroundColor: statusStyles[item.status]?.backgroundColor || defaultStyle.backgroundColor,
+                            color: statusStyles[item.status]?.color || defaultStyle.color,
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            textAlign: 'center',
+                            fontSize: '0.875rem',
+                            fontWeight: 'bold',
+                            display: 'inline-block',
+                            minWidth: '80px',
+                          }}
+                        >
+                          {item.status}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
 
-      {tab === 'open' ?
-        <Box sx={{ p: '10px', mt: '5px' }}>
-          {
-            loading ? (
-              <Spinner />
-            ) :
-              // leads.open && leads.open
-              //   ? stableSort(leads.open && leads.open, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item, index) => (
-              // stableSort(openLeads, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item: any, index: any) => (
-              openLeads?.length ? openLeads.map((item: any, index: any) => (
-                <Box key={index}>
-                  <Box className='lead-box'>
-                    <Box className='lead-box1'>
-                      <Stack className='lead-row1'>
-                        <div style={{ color: '#1A3353', fontSize: '1rem', fontWeight: '500', cursor: 'pointer' }} onClick={() => selectLeadList(item?.id)}>
-                          {item?.title}
-                        </div>
-                        <div onClick={() => deleteLead(item?.id)}>
-                          <FaTrashAlt style={{ cursor: 'pointer', color: 'gray' }} />
-                        </div>
-                      </Stack>
-                      <Stack className='lead-row2'>
-                        <div className='lead-row2-col1'>
-                          <div style={{ color: 'gray', fontSize: '16px', textTransform: 'capitalize' }}>
-                            {item?.country || ''} - source <span style={{ color: '#1a3353', fontWeight: 500 }}>{item?.source || '--'}</span> - status <span style={{ color: '#1a3353', fontWeight: 500 }}>{item?.status || '--'}</span>
-                          </div>
-                          <Box sx={{
-                            ml: 1
-                            //  flexWrap: 'wrap', width: '50%' 
-                          }}>
-                            {
-                              item.tags.map((tagData: any, index: any) => (
-                                // tag.slice(0, 3).map((tagData: any, index: any) => (
-                                <Label tags={tagData} key={index} />
-                              ))
-                            }{item.tags.length > 4 ? <Link sx={{ ml: 1 }}>+{item.tags.length - 4}</Link> : ''}
-                          </Box>
-                          <Box sx={{ ml: 1 }}>
-                            <div style={{ display: 'flex' }}>
-                              <AvatarGroup
-                                // total={2}
-                                max={3}
-                              >
-                                {/* <Tooltip title={con.user.username}> */}
-                                {/* {tag.map((tagData: any, index: any) => ( */}
-                                {item?.team && item?.team?.map((team: any, index: any) => (
-                                  <Avatar
-                                    alt={team}
-                                    src={team}
-                                  >
-                                    {team}
-                                  </Avatar>
-                                ))}
-                                {/* </Tooltip> */}
-                                {/* )} */}
-                              </AvatarGroup>
-                            </div>
+                        <FaEdit
+                          onClick={() =>
+                            navigate('/app/leads/edit-lead', {
+                              state: {
+                                id: item.id,
+                                value: item,
+                                contacts: contacts,
+                                status: status,
+                                source: source,
+                                companies: companies,
+                                tags: tags,
+                                users: users,
+                                countries: countries,
+                                industries: industries,
+                              },
+                            })
+                          }
+                          style={{ fill: '#1A3353', cursor: 'pointer', width: '18px' }}
+                        />
 
-                          </Box>
-                          {/* {
-                          item.assigned_to.map((assignItem: any, index: any) => (
-                            assignItem.user_details.profile_pic
-                              ? <Avatar alt='Remy Sharp'
-                                src={assignItem.user_details.profile_pic}
-                              />
-                              : <Avatar alt='Remy Sharp'
-                                size='small'
-                              // sx={{ backgroundColor: 'deepOrange', color: 'white', textTransform: 'capitalize', mt: '-20px', ml: '10px' }}
-                              >
-                                {assignItem.user_details.first_name.charAt(0)}
-                              </Avatar>
-                          ))
-                        } */}
-                        </div>
-                        <div className='lead-row2-col2'>
-                          {/* created on {formatDate(item.created_on)} by   &nbsp;<span> */}
-                          created&nbsp; {FormateTime(item?.created_at)}&nbsp; by
-                          <Avatar
-                            alt={item?.first_name}
-                            src={item?.created_by?.profile_pic}
-                            sx={{ ml: 1 }}
-                          // style={{
-                          //   height: '20px',
-                          //   width: '20px'
-                          // }}
-                          /> &nbsp;&nbsp;{item?.first_name}&nbsp;{item?.last_name}
-                        </div>
-                      </Stack>
-                    </Box>
-                  </Box>
-                </Box>
-              )) : (
-                <div style={{ textAlign: 'center', marginTop: '20px', color: 'gray' }}>No open leads available</div>
-              )
-          }
+
+
+                        <FaTrashAlt style={{ cursor: 'pointer' }} onClick={() => deleteLead(item.id)} />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                  : null}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          {loading && <Spinner />}
+        </Paper>
+
+        {/* Pagination */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <Box>
+            <Button
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+              startIcon={<FiChevronLeft />}
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              endIcon={<FiChevronRight />}
+            >
+              Next
+            </Button>
+          </Box>
+  
         </Box>
-        : <Box sx={{ p: '10px', mt: '5px' }}>
-          {
-            // stableSort(closedLeads?.length || [], getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item: any, index: any) => (
-            closedLeads?.length ? closedLeads.map((item: any, index: any) => (
-              <Box key={index}>
-                <Box className='lead-box'>
-                  <Box className='lead-box1'>
-                    <Stack className='lead-row1'>
-                      <div style={{ color: '#1A3353', fontSize: '1rem', fontWeight: '500', cursor: 'pointer' }} onClick={() => selectLeadList(item?.id)}>
-                        {item?.title}
-                      </div>
-                      <div onClick={() => deleteLead(item)}>
-                        <FaTrashAlt style={{ cursor: 'pointer', color: 'gray' }} />
-                      </div>
-                    </Stack>
-                    <Stack className='lead-row2'>
-                      <div className='lead-row2-col1'>
-                        <div style={{ color: 'gray', fontSize: '16px', textTransform: 'capitalize' }}>
-                          {item?.country || ''} - source <span style={{ color: '#1a3353', fontWeight: 500 }}>{item?.source || '--'}</span> - status <span style={{ color: '#1a3353', fontWeight: 500 }}>{item?.status || '--'}</span>
-                        </div>
-                        <Box sx={{ ml: 1 }}>
-                          {
-                            item.tags.map((tagData: any, index: any) => (
-                              // tag.slice(0, 3).map((tagData: any, index: any) => (
-                              <Label tags={tagData} key={index} />
-                            ))
-                          }{item.tags.length > 4 ? <Link sx={{ ml: 1 }}>+{item.tags.length - 4}</Link> : ''}
-                        </Box>
-                        <Box sx={{ ml: 1 }}>
-                          <div style={{ display: 'flex' }}>
-                            <AvatarGroup
-                              // total={2}
-                              max={3}
-                            >
-                              {/* {con.map((con) => */}
-                              {/* <Tooltip title={con.user.username}> */}
-                              {item?.team && item?.team?.map((team: any, index: any) => (
-                                <Avatar
-                                  alt={team}
-                                  src={team}
-                                >
-                                  {team}
-                                </Avatar>
-                              ))}
-                              {/* </Tooltip> */}
-                              {/* )} */}
-                            </AvatarGroup>
-                          </div>
+      </Container>
 
-                        </Box>
-
-                      </div>
-                      <div className='lead-row2-col2'>
-                        created&nbsp; {FormateTime(item?.created_at)}&nbsp; by
-                        <Avatar
-                          alt={item?.first_name}
-                          src={item?.created_by?.profile_pic}
-                          sx={{ ml: 1 }}
-                        /> &nbsp;&nbsp;{item?.first_name}&nbsp;{item?.last_name}
-                      </div>
-                    </Stack>
-                  </Box>
-                </Box>
-              </Box>
-            )) : openLeads && openLeads.length === 0 ? (
-              <div style={{ textAlign: 'center', marginTop: '20px', color: 'gray' }}>No closed leads available</div>
-            ) : (
-              <Spinner />
-            )
-          }
-        </Box>}
-      {/* {loading &&
-        <Spinner />} */}
-      {/* <DeleteModal
-        onClose={deleteLeadModalClose}
-        open={deleteLeadModal}
-        id={selectedId}
-        modalDialog={modalDialog}
-        modalTitle={modalTitle}
-      /> */}
+      {/* Delete Modal */}
       <DeleteModal
         onClose={deleteLeadModalClose}
         open={deleteLeadModal}
@@ -561,5 +549,5 @@ export default function Leads(props: any) {
         DeleteItem={deleteItem}
       />
     </Box>
-  )
+  );
 }
