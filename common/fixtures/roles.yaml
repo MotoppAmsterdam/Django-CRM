@@ -54,6 +54,10 @@
   fields:
     name: delete_lead
     module: 0
+- model: common.permission
+  fields:
+    name: update_lead_status
+    module: 0
 # Contacts
 - model: common.permission
   fields:
@@ -195,17 +199,17 @@
   pk: ADMIN
   fields:
     name: ADMIN
-    permissions: ["add_lead", "get_lead", "edit_lead", "delete_lead", "add_contact", "get_contact", "edit_contact", "delete_contact", "add_opportunity", "get_opportunity", "edit_opportunity", "delete_opportunity", "add_account", "get_account", "edit_account", "delete_account", "add_company", "get_company", "edit_company", "delete_company", "add_user", "get_user", "edit_user", "delete_user", "add_case", "get_case", "edit_case", "delete_case", "add_setting", "get_setting", "edit_setting", "delete_setting", "get_role", "add_role", "edit_role", "delete_role"]
+    permissions: ["add_lead", "get_lead", "edit_lead", "delete_lead", "update_lead_status", "add_contact", "get_contact", "edit_contact", "delete_contact", "add_opportunity", "get_opportunity", "edit_opportunity", "delete_opportunity", "add_account", "get_account", "edit_account", "delete_account", "add_company", "get_company", "edit_company", "delete_company", "add_user", "get_user", "edit_user", "delete_user", "add_case", "get_case", "edit_case", "delete_case", "add_setting", "get_setting", "edit_setting", "delete_setting", "get_role", "add_role", "edit_role", "delete_role"]
 - model: common.role
   pk: SALES_MANAGER
   fields:
     name: SALES_MANAGER
-    permissions: ["add_lead", "get_lead", "edit_lead", "delete_lead", "get_opportunity", "add_opportunity", "edit_opportunity", "delete_opportunity"]
+    permissions: ["add_lead", "get_lead", "edit_lead", "delete_lead", "update_lead_status", "get_opportunity", "add_opportunity", "edit_opportunity", "delete_opportunity"]
 - model: common.role
   pk: SALES_REPRESENTATIVE
   fields:
     name: SALES_REPRESENTATIVE
-    permissions: ["get_lead", "get_opportunity", "add_opportunity", "edit_opportunity", "delete_opportunity"]
+    permissions: ["get_lead", "update_lead_status", "get_opportunity", "add_opportunity", "edit_opportunity", "delete_opportunity"]
 - model: common.role
   pk: EMPLOYEE
   fields:
