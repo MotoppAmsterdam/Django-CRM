@@ -131,3 +131,11 @@ class OpportunityDetailEditSwaggerSerializer(serializers.Serializer):
 
 class OpportunityCommentEditSwaggerSerializer(serializers.Serializer):
     comment = serializers.CharField()
+
+
+class OpportunityUpdateStageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Opportunity
+        fields = (
+            "stage",
+        )

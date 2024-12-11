@@ -7,9 +7,11 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 
 from accounts.models import Account, Tags
 from accounts.serializer import AccountSerializer, TagsSerailizer
+from common.crm_permissions import crm_permissions
 from common.models import Attachments, Comment, Profile
 
 #from common.external_auth import CustomDualAuthentication
@@ -538,3 +540,39 @@ class OpportunityAttachmentView(APIView):
             },
             status=status.HTTP_403_FORBIDDEN,
         )
+
+
+class OpportunityUpdateStageView(APIView):
+    permission_classes = (crm_permissions(post="update_opportunity_status"),)
+
+    @extend_schema(
+        tags=["Opportunities"],
+        parameters=swagger_params1.organization_params,
+        description="Update the opportunity stage",
+        operation_id="updateOpportunityStage",
+        request=OpportunityUpdateStageSerializer
+    )
+    def post(self, request, pk):
+        opportunity = get_object_or_404(Opportunity, pk=pk)
+
+        if opportunity.org != request.profile.org:
+            return Response(
+                {"error": True, "errors": "User company does not match with header...."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        assigned_ids = [assigned_to.id for assigned_to in opportunity.assigned_to.all()]
+        if request.profile.role.name != "ADMIN" and not request.user.is_superuser:
+            if opportunity.created_by != request.user and request.profile.id not in assigned_ids:
+                return Response(
+                    {
+                        "error": True,
+                        "message": "You don't have permission to perform this action",
+                    }
+                )
+
+        serializer = OpportunityUpdateStageSerializer(opportunity, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"error": False, "message": "Stage updated!"},
+                        status=status.HTTP_200_OK)
