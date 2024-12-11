@@ -1,6 +1,6 @@
 import random
 from faker import Faker
-from common.models import Org, Profile, User, Address
+from common.models import Org, Profile, User, Address, Role
 from contacts.models import Contact
 from leads.models import Lead, Company
 from opportunity.models import Opportunity
@@ -42,13 +42,17 @@ def seed_database():
                 postcode=faker.postcode(),
                 country="US"
             )
+            if i == 0:
+                role = Role.objects.get(pk="ADMIN")
+            else:
+                role = Role.objects.get(pk="EMPLOYEE")
             profile = Profile.objects.create(
                 user=user,
                 org=org,
                 phone=f"+91{random.randint(1000000000, 9999999999)}",
                 alternate_phone=f"+91{random.randint(1000000000, 9999999999)}",
                 address=address,
-                role="ADMIN" if i == 0 else "USER",
+                role=role,
                 has_sales_access=random.choice([True, False]),
                 has_marketing_access=random.choice([True, False]),
                 is_active=True,

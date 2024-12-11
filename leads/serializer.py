@@ -89,7 +89,7 @@ class LeadSerializer(serializers.ModelSerializer):
 class LeadCreateSerializer(serializers.ModelSerializer):
     probability = serializers.IntegerField(max_value=100)
     assigned_to = serializers.PrimaryKeyRelatedField(
-        queryset=Profile.objects.all(), many=True, required=False
+        queryset=Profile.objects.all(), many=True, required=True
     )
 
     def __init__(self, *args, **kwargs):
@@ -110,8 +110,8 @@ class LeadCreateSerializer(serializers.ModelSerializer):
                 self.fields["source"]._set_choices(prev_choices)
 
     def validate_assigned_to(self, assigned_to):
-        if not assigned_to:
-            return []
+        if not assigned_to or len(assigned_to) == 0:
+            raise serializers.ValidationError("The lead must be assigned to a least one person before saving")
         return assigned_to
 
     def create(self, validated_data):
@@ -119,8 +119,8 @@ class LeadCreateSerializer(serializers.ModelSerializer):
         lead = super().create(validated_data)  # Create the lead instance
         
         # Assign users to the lead
-        if assigned_to:
-            lead.assigned_to.set(assigned_to)
+        lead.assigned_to.set(assigned_to)
+
         return lead
 
     def validate_account_name(self, account_name):

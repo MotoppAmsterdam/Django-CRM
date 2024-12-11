@@ -1,4 +1,8 @@
-import { Box, Button, Card, Stack, Tab, Table, TableBody, TableContainer, TableHead, TableRow, Tabs, Toolbar, Typography, Paper, Select, MenuItem, TableCell, TableSortLabel, Container, Skeleton, Chip } from '@mui/material'
+import {
+    Box, Button, Card, Stack, Tab, Table, TableBody, TableContainer, TableHead,
+    TableRow, Tabs, Toolbar, Typography, Paper, Select, MenuItem,
+    TableCell, TableSortLabel, Container, Skeleton, Chip, Menu, IconButton
+} from '@mui/material'
 import React, { useEffect, useState } from 'react'
 import { FiPlus } from "@react-icons/all-files/fi/FiPlus";
 import { FiChevronLeft } from "@react-icons/all-files/fi/FiChevronLeft";
@@ -8,9 +12,14 @@ import { Spinner } from '../../components/Spinner';
 import { fetchData } from '../../components/FetchData';
 import { ContactUrl } from '../../services/ApiUrls';
 import { useNavigate } from 'react-router-dom';
-import { FaTrashAlt } from 'react-icons/fa';
+import { FaTrashAlt, FaEdit } from 'react-icons/fa';
 import { DeleteModal } from '../../components/DeleteModal';
 import { EnhancedTableHead } from '../../components/EnchancedTableHead';
+import { CustomToolbar, FabLeft, FabRight } from '../../styles/CssStyled';
+import { FiChevronUp } from '@react-icons/all-files/fi/FiChevronUp';
+import { FiChevronDown } from '@react-icons/all-files/fi/FiChevronDown';
+
+
 
 interface HeadCell {
     disablePadding: boolean;
@@ -39,6 +48,7 @@ export default function Contacts() {
 
     const [value, setValue] = useState('Open');
     const [loading, setLoading] = useState(true);
+    const [loadingFiltSort, setLoadingFiltSort] = useState(false);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [contactList, setContactList] = useState<any[]>([]);
@@ -50,10 +60,15 @@ export default function Contacts() {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [recordsPerPage, setRecordsPerPage] = useState<number>(10);
     const [totalPages, setTotalPages] = useState<number>(0);
+    const [filterCategory, setFilterCategory] = useState<string | null>(null); // State for selected category
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // State for dropdown anchor
+    const [selectOpen, setSelectOpen] = useState(false);
+    const [sortCriteria, setSortCriteria] = useState<string | null>(null); // Sorting criteria state
+    const [anchorElSort, setAnchorElSort] = useState<null | HTMLElement>(null); // State for sorting dropdown anchor
 
     useEffect(() => {
         getContacts();
-    }, [currentPage, recordsPerPage]);
+    }, [currentPage, recordsPerPage, filterCategory, sortCriteria]);
 
     const getContacts = async () => {
         const Header = {
@@ -62,15 +77,32 @@ export default function Contacts() {
             Authorization: localStorage.getItem('Token'),
             org: localStorage.getItem('org')
         };
+
         try {
+            // Calculate offset for pagination
             const offset = (currentPage - 1) * recordsPerPage;
-            const data = await fetchData(`${ContactUrl}/?offset=${offset}&limit=${recordsPerPage}`, 'GET', null as any, Header);
-            setContactList(data.contact_obj_list);
-            setCountries(data.countries);
-            setTotalPages(Math.ceil(data.contacts_count / recordsPerPage));
-            setLoading(false);
+
+            // Add category filter if selected
+            const categoryFilter = filterCategory ? `&category=${filterCategory}` : '';
+            const sortingFilter = sortCriteria ? `&sorting-criteria=${sortCriteria}` : '';
+
+            // Fetch data from the back-end with pagination and filtering
+            const data = await fetchData(
+                `${ContactUrl}/?offset=${offset}&limit=${recordsPerPage}${categoryFilter}${sortingFilter}`,
+                'GET',
+                null as any,
+                Header
+            );
+
+            // Update states with the response
+            setContactList(data.contact_obj_list); // Update contact list
+            setCountries(data.countries); // Update countries if provided
+            setTotalPages(Math.ceil(data.contacts_count / recordsPerPage)); // Calculate total pages
+            setLoading(false); // Stop the loading spinner
+            setLoadingFiltSort(false);
         } catch (error) {
             console.error('Error fetching contacts:', error);
+            setLoading(false); // Stop the loading spinner on error
         }
     };
 
@@ -125,6 +157,42 @@ export default function Contacts() {
         setSelectedId('');
     };
 
+    // Function to handle dropdown opening
+    const handleCategoryClick = (event: React.MouseEvent<HTMLTableHeaderCellElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    // Function to handle dropdown closing
+    const handleCategoryClose = () => {
+        setAnchorEl(null);
+    };
+
+    const handleCategorySelect = (category: string | null) => {
+        setLoadingFiltSort(true);
+        // Update the selected filter category
+        setFilterCategory(category);
+
+        // Reset to the first page when a new filter is applied
+        setCurrentPage(1);
+
+        // Close the dropdown and fetch new data
+        handleCategoryClose();
+    };
+
+    const handleSortClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        setAnchorElSort(event.currentTarget);
+    };
+
+    const handleSortClose = () => {
+        setAnchorElSort(null);
+    };
+
+    const handleSortSelection = (criteria: string) => {
+        setLoadingFiltSort(true); // Start loading
+        setSortCriteria(criteria);
+        handleSortClose();
+    };
+
     const DeleteItem = async () => {
         const Header = {
             Accept: 'application/json',
@@ -143,79 +211,204 @@ export default function Contacts() {
         }
     };
 
+    const recordsList = [[10, '10 Records per page'], [20, '20 Records per page'], [30, '30 Records per page'], [40, '40 Records per page'], [50, '50 Records per page']]
+
     return (
         <Box sx={{ mt: '60px' }}>
-            <Container sx={{ width: '100%' }}>
-                <Paper sx={{ width: '100%', mb: 2, p: '15px' }}>
-                    {/* Top Menu with Add Contact Button */}
-                    <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="h6">Contacts</Typography>
-                        <Button
-                            variant="contained"
-                            startIcon={<FiPlus />}
-                            onClick={onAddContact}
-                            sx={{ padding: '8px 16px', fontSize: '14px' }}
-                        >
-                            Add Contact
-                        </Button>
-                    </Toolbar>
+            <CustomToolbar sx={{ flexDirection: 'row-reverse' }}>
+                <Stack sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                    <Select
+                        value={recordsPerPage}
+                        onChange={(e: any) => handleRecordsPerPage(e)}
+                        open={selectOpen}
+                        onOpen={() => setSelectOpen(true)}
+                        onClose={() => setSelectOpen(false)}
+                        className={`custom-select`}
+                        onClick={() => setSelectOpen(!selectOpen)}
+                        IconComponent={() => (
+                            <div onClick={() => setSelectOpen(!selectOpen)} className="custom-select-icon">
+                                {selectOpen ? <FiChevronUp style={{ marginTop: '12px' }} /> : <FiChevronDown style={{ marginTop: '12px' }} />}
+                            </div>
+                        )}
+                        sx={{
+                            '& .MuiSelect-select': { overflow: 'visible !important' }
+                        }}
+                    >
+                        {recordsList?.length && recordsList.map((item: any, i: any) => (
+                            <MenuItem key={i} value={item[0]}>
+                                {item[1]}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                    <Box sx={{ borderRadius: '7px', backgroundColor: 'white', height: '40px', minHeight: '40px', maxHeight: '40px', display: 'flex', flexDirection: 'row', alignItems: 'center', mr: 1, p: '0px' }}>
+                        <FabLeft onClick={handlePreviousPage} disabled={currentPage === 1}>
+                            <FiChevronLeft style={{ height: '15px' }} />
+                        </FabLeft>
+                        <Typography sx={{ mt: 0, textTransform: 'lowercase', fontSize: '15px', color: '#1A3353', textAlign: 'center' }}>
+                            {currentPage} to {totalPages}
+                            {/* {renderPageNumbers()} */}
+                        </Typography>
+                        <FabRight onClick={handleNextPage} disabled={currentPage === totalPages}>
+                            <FiChevronRight style={{ height: '15px' }} />
+                        </FabRight>
+                    </Box>
+                    <Button
+                        variant='contained'
+                        startIcon={<FiPlus className='plus-icon' />}
+                        onClick={onAddContact}
+                        className={'add-button'}
+                    >
+                        Add Contact
+                    </Button>
+                </Stack>
+            </CustomToolbar>
+            <Container sx={{ width: '100%', maxWidth: '100%', minWidth: '100%' }}>
+                <Box sx={{ width: '100%', minWidth: '100%', m: '15px 0px 0px 0px' }}>
 
-                    <TableContainer>
-                        <Table>
-                            <EnhancedTableHead
-                                order={order}
-                                orderBy={orderBy}
-                                onRequestSort={handleRequestSort}
-                                headCells={headCells}
-                            />
-                            <TableBody>
-                                {contactList?.length
-                                    ? stableSort(contactList, getComparator(order, orderBy)).map((item: any, index: any) => (
-                                        <TableRow
-                                            key={index}
-                                            sx={{
-                                                border: 0,
-                                                '&:nth-of-type(even)': { backgroundColor: 'whitesmoke' },
-                                                textTransform: 'capitalize',
-                                            }}
-                                        >
-                                            <TableCell onClick={() => contactHandle(item.id)}>
-                                                {item.first_name + ' ' + item.last_name}
-                                            </TableCell>
-                                            <TableCell>{item.primary_email}</TableCell>
-                                            <TableCell>{item.mobile_number || '---'}</TableCell>
-                                            <TableCell>
-                                                {Object.entries(item.categories || {}).map(([category, ids]) =>
-                                                    (ids as number[]).map((id: number) => (
-                                                        <Chip
-                                                            key={`${category}-${id}`}
-                                                            label={`${category}`}
-                                                            clickable
-                                                            onClick={() => handleChipClick(category, id)}
-                                                            sx={{
-                                                                backgroundColor: categoryStyles[category]?.backgroundColor,
-                                                                border: `1px solid ${categoryStyles[category]?.borderColor}`,
-                                                                color: categoryStyles[category]?.borderColor,
-                                                                margin: '0 4px',
-                                                            }}
-                                                        />
-                                                    ))
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <FaTrashAlt style={{ cursor: 'pointer' }} onClick={() => deleteRow(item.id)} />
+                    <Paper sx={{ width: 'cal(100%-15px)', mb: 2, p: '15px' }}>
+                        <TableContainer>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    cursor: 'pointer',
+                                    padding: '8px 16px',
+                                    border: '1px solid #ccc',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#f9f9f9',
+                                    mr: 2,
+                                    ml: "auto",
+                                    width: "240px"
+                                }}
+                                onClick={handleSortClick}
+                            >
+                                <Typography variant="body2" sx={{ mr: 1 }}>
+                                    Sort by: {sortCriteria ? `${sortCriteria}` : ''}
+                                </Typography>
+                                <FiChevronDown />
+                            </Box>
+                            <Table>
+                                <EnhancedTableHead
+                                    order={order}
+                                    orderBy={orderBy}
+                                    onRequestSort={(event: React.MouseEvent<unknown>, property: string) => {
+                                        if (property !== 'categories') {
+                                            handleRequestSort(event, property);
+                                        }
+                                    }}
+                                    headCells={headCells.map((headCell) =>
+                                        headCell.id === 'categories'
+                                            ? {
+                                                ...headCell,
+                                                label: (
+                                                    <span
+                                                        onClick={handleCategoryClick} // Open dropdown on click
+                                                        style={{ cursor: 'pointer' }}
+                                                    >
+                                                        {headCell.label}
+                                                    </span>
+                                                ),
+                                            }
+                                            : headCell
+                                    )}
+                                />
+                                <TableBody>
+                                    {loadingFiltSort ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5}>
+                                                <Spinner /> {/* Replace with your loading component */}
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                    : null}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                    {loading && <Spinner />}
-                </Paper>
+                                    ) : contactList?.length
+                                        ? (sortCriteria // Check if back-end sorting is applied
+                                            ? contactList // Use the already sorted list from the back-end
+                                            : stableSort(contactList, getComparator(order, orderBy)) // Fallback to front-end sorting
+                                        ).map((item: any, index: any) => (
+                                            <TableRow
+                                                key={index}
+                                                sx={{
+                                                    border: 0,
+                                                    '&:nth-of-type(even)': { backgroundColor: 'whitesmoke' },
+                                                    textTransform: 'capitalize',
+                                                }}
+                                            >
+                                                <TableCell onClick={() => contactHandle(item.id)}>
+                                                    {item.first_name + ' ' + item.last_name}
+                                                </TableCell>
+                                                <TableCell>{item.primary_email}</TableCell>
+                                                <TableCell>{item.mobile_number || '---'}</TableCell>
+                                                <TableCell>
+                                                    {item.categories && Object.keys(item.categories).length > 0 ? (
+                                                        Object.entries(item.categories || {}).map(([category, ids]) =>
+                                                            (ids as number[]).map((id: number) => (
+                                                                <Chip
+                                                                    key={`${category}-${id}`}
+                                                                    label={`${category}`}
+                                                                    clickable
+                                                                    onClick={() => handleChipClick(category, id)}
+                                                                    sx={{
+                                                                        backgroundColor: categoryStyles[category]?.backgroundColor,
+                                                                        border: `1px solid ${categoryStyles[category]?.borderColor}`,
+                                                                        color: categoryStyles[category]?.borderColor,
+                                                                        margin: '0 4px',
+                                                                    }}
+                                                                />
+                                                            ))
+                                                        )
+                                                    ) : (
+                                                        <Typography variant="body2" sx={{ color: 'gray' }}>
+                                                            Has no special category
+                                                        </Typography>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <IconButton>
+                                                        <FaEdit
+                                                            onClick={() => { alert("Is not ready") }}
+                                                            style={{ fill: '#1A3353', cursor: 'pointer', width: '18px' }}
+                                                        />
+                                                    </IconButton>
+                                                    <IconButton>
+                                                        <FaTrashAlt
+                                                            style={{ fill: '#1A3353', cursor: 'pointer', width: '18px' }}
+                                                            onClick={() => deleteRow(item.id)}
+                                                        />
+                                                    </IconButton>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                        : null}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                        {loading && <Spinner />}
+                    </Paper>
+                </Box>
+
+                {/* Dropdown Menu */}
+                <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleCategoryClose}
+                    anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'center',
+                    }}
+                    transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'center',
+                    }}
+                >
+                    <MenuItem onClick={() => handleCategorySelect(null)}>All Categories</MenuItem>
+                    {Object.keys(categoryStyles).map((category) => (
+                        <MenuItem key={category} onClick={() => handleCategorySelect(category)}>
+                            {category}
+                        </MenuItem>
+                    ))}
+                </Menu>
 
                 {/* Pagination */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 2 }}>
                     <Box>
                         <Button
                             onClick={handlePreviousPage}
@@ -232,17 +425,31 @@ export default function Contacts() {
                             Next
                         </Button>
                     </Box>
-                    <Select
-                        value={recordsPerPage}
-                        onChange={(e: any) => handleRecordsPerPage(e)}
-                        sx={{ width: 120 }}
-                    >
-                        <MenuItem value={10}>10</MenuItem>
-                        <MenuItem value={25}>25</MenuItem>
-                        <MenuItem value={50}>50</MenuItem>
-                    </Select>
                 </Box>
             </Container>
+
+            <Menu
+                anchorEl={anchorElSort}
+                open={Boolean(anchorElSort)}
+                onClose={handleSortClose}
+                anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'left',
+                }}
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'left',
+                }}
+                sx={{
+                    '& .MuiMenu-paper': {
+                        width: "240px"
+                    },
+                }}
+            >
+                <MenuItem onClick={() => handleSortSelection('category')}>Category</MenuItem>
+                <MenuItem onClick={() => handleSortSelection('category')}>Name</MenuItem>
+                <MenuItem onClick={() => handleSortSelection('category')}>Email</MenuItem>
+            </Menu>
 
             {/* Delete Modal */}
             <DeleteModal
