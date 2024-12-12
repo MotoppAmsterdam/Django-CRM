@@ -276,6 +276,7 @@ class OpportunityDetailView(APIView):
                 opportunity_object.assigned_to.all().values_list("id", flat=True)
             )
             recipients = list(set(assigned_to_list) - set(previous_assigned_to_users))
+            
             send_email_to_assigned_user.delay(
                 recipients,
                 opportunity_object.id,
