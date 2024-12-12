@@ -22,6 +22,7 @@ from common.models import (
     Attachments,
     Comment,
     Document,
+    Notification,
     Org,
     Profile,
     User,
@@ -555,3 +556,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+    
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'message', 'created_at', 'is_read']

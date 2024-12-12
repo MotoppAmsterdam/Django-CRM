@@ -4,6 +4,7 @@ import Login from './pages/auth/Login';
 import { Home } from './pages/home/Home';
 import SetPassword from './pages/users/ChangePassword';
 import EmailVerification from './pages/auth/EmailVerification';
+import Notifications from './pages/notifications/Notifications';
 
 function App() {
 
@@ -23,6 +24,7 @@ function App() {
           <Route path='/login' element={<Login />} />
           <Route path="/auth/password-setup" element={<SetPassword />} />
           <Route path="/auth/validate-token" element={<EmailVerification />} />
+
           {/* <Route path="/" element={<Navigate to="/contacts" replace />} /> */}
           {/* <Route
             path='/'

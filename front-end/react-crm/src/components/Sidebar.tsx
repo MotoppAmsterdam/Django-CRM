@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppBar, Avatar, Box, Drawer, IconButton, List, ListItem, ListItemIcon, Popover, Toolbar, Tooltip, Typography } from '@mui/material';
+import { AppBar, Avatar, Box, Drawer, IconButton, List, ListItem, ListItemIcon, Popover, Toolbar, Tooltip, Typography, Badge } from '@mui/material';
 import { FaAddressBook, FaBars, FaBriefcase, FaBuilding, FaChartLine, FaCog, FaDiceD6, FaHandshake, FaIndustry, FaSignOutAlt, FaTachometerAlt, FaUserFriends, FaUsers } from "react-icons/fa";
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { fetchData } from './FetchData';
@@ -40,6 +40,7 @@ import { StyledListItemButton, StyledListItemText } from '../styles/CssStyled';
 // import MyContext, { MyContextData } from '../context/Context';
 import MyContext from '../context/Context';
 import Settings from './Settings';
+import Notifications from '../pages/notifications/Notifications';
 
 // declare global {
 //     interface Window {
@@ -58,6 +59,45 @@ export default function Sidebar(props: any) {
     const [userRole, setUserRole] = useState('')
     const [organizationModal, setOrganizationModal] = useState(false)
     const organizationModalClose = () => { setOrganizationModal(false) }
+    const [unreadCount, setUnreadCount] = useState(0); // State to store unread notifications count
+
+    const userProfile = () => {
+        fetchData(`${ProfileUrl}/`, 'GET', null as any, Header1)
+            .then((res: any) => {
+                console.log(res, 'user')
+                if (res?.user_obj) {
+                    setUserDetail(res?.user_obj)
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error)
+            })
+    }
+
+    // Fetch unread notifications count when the component mounts
+    const fetchUnreadNotificationsCount = () => {
+        const Header = {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: localStorage.getItem('Token'),
+            org: localStorage.getItem('org')
+        }
+
+        fetchData('/api/notifications/unread/', 'GET', null as any, Header) // Replace with your actual endpoint for unread notifications
+            .then((res: any) => {
+                console.log(res);
+                if (res?.unread_count) {
+                    setUnreadCount(res.unread_count);  // Set unread notifications count
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching unread notifications:', error);
+            });
+    };
+
+    useEffect(() => {
+        fetchUnreadNotificationsCount(); // Fetch unread notifications count
+    }, [])
 
     useEffect(() => {
         toggleScreen()
@@ -95,24 +135,13 @@ export default function Sidebar(props: any) {
             setScreen('cases')
         } else if (location.pathname.split('/')[2] === 'settings') {
             setScreen('settings');
+        } else if (location.pathname.split('/')[2] === 'notifications') {
+            setScreen('notifications');
         }
     }
     // useEffect(() => {
     //     userProfile()
     // }, [])
-
-    const userProfile = () => {
-        fetchData(`${ProfileUrl}/`, 'GET', null as any, Header1)
-            .then((res: any) => {
-                console.log(res, 'user')
-                if (res?.user_obj) {
-                    setUserDetail(res?.user_obj)
-                }
-            })
-            .catch((error) => {
-                console.error('Error:', error)
-            })
-    }
 
     const navList = ['leads', 'contacts', 'opportunities', 'accounts', 'companies', 'users', 'cases', 'settings']
     const navIcons = (text: any, screen: any): React.ReactNode => {
@@ -149,6 +178,10 @@ export default function Sidebar(props: any) {
 
     const handleClose = () => {
         setAnchorEl(null);
+    };
+
+    const handleBadgeClick = () => {
+        navigate('app/notifications'); // Navigate to the notification list page when badge is clicked
     };
 
     const open = Boolean(anchorEl);
@@ -188,7 +221,20 @@ export default function Sidebar(props: any) {
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}>
-                        {/* <IconButton onClick={userProfile} sx={{ mr: 2 }}><FaCog /></IconButton> */}
+                        <Badge
+                            badgeContent={unreadCount > 0 ? unreadCount : null}
+                            color="primary"
+                        >
+                            <Box
+                                onClick={handleBadgeClick} // Attach the click handler
+                                sx={{
+                                    width: 24,
+                                    height: 24,
+                                    backgroundColor: 'gray',
+                                    borderRadius: '50%'
+                                }}
+                            />
+                        </Badge>
                         <IconButton onClick={handleClick} sx={{ mr: 3 }}>
                             <Avatar
                                 // src='hj'
@@ -310,6 +356,7 @@ export default function Sidebar(props: any) {
                             <Route path='/app/cases/edit-case' element={<EditCase />} />
                             <Route path='/app/cases/case-details' element={<CaseDetails />} />
                             <Route path="/app/settings" element={<Settings />} />
+                            <Route path="/app/notifications" element={<Notifications />} />
                         </Routes>
                     </Box>
                 </MyContext.Provider>
