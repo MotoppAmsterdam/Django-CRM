@@ -41,6 +41,8 @@ import { StyledListItemButton, StyledListItemText } from '../styles/CssStyled';
 import MyContext from '../context/Context';
 import Settings from './Settings';
 import Notifications from '../pages/notifications/Notifications';
+import MailIcon from '@mui/icons-material/Mail';
+
 
 // declare global {
 //     interface Window {
@@ -221,11 +223,12 @@ export default function Sidebar(props: any) {
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}>
-                        <Badge
-                            badgeContent={unreadCount > 0 ? unreadCount : null}
-                            color="primary"
-                        >
-                            <Box
+                        <IconButton onClick={handleBadgeClick}>
+                            <Badge
+                                badgeContent={unreadCount > 0 ? unreadCount : null}
+                                color="primary"
+                            >
+                                {/* <MailIcon
                                 onClick={handleBadgeClick} // Attach the click handler
                                 sx={{
                                     width: 24,
@@ -233,8 +236,10 @@ export default function Sidebar(props: any) {
                                     backgroundColor: 'gray',
                                     borderRadius: '50%'
                                 }}
-                            />
-                        </Badge>
+                            /> */}
+                                <MailIcon color={unreadCount > 0 ? 'secondary' : 'action'} />
+                            </Badge>
+                        </IconButton>
                         <IconButton onClick={handleClick} sx={{ mr: 3 }}>
                             <Avatar
                                 // src='hj'
