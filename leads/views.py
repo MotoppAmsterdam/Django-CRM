@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Account, Tags
-from common.models import APISettings, Attachments, Comment, Profile
+from common.models import APISettings, Attachments, Comment, Notification, Profile
 
 #from common.external_auth import CustomDualAuthentication
 from common.serializer import (
@@ -204,6 +204,15 @@ class LeadListView(APIView, LimitOffsetPagination):
                     id__in=assinged_to_list, org=request.profile.org
                 )
                 lead_obj.assigned_to.add(*profiles)
+
+                for profile in profiles:
+                    # Create a notification for each assigned user
+                    notification_message = f"You have been assigned a new lead: {lead_obj.title}"
+                    Notification.objects.create(
+                        profile=profile,
+                        message=notification_message,
+                        is_read=False
+                    )
 
             if data.get("status") == "converted":
                 account_object = Account.objects.create(

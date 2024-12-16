@@ -1242,3 +1242,39 @@ class RolesView(APIView):
             return Response(response_serializer.data,
                             status=status.HTTP_201_CREATED)
         return Response(role_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UnreadNotificationsView(APIView):
+    def get(self, request):
+        # Fetch unread notifications for the authenticated user
+        user_id = self.request.user.id
+        profile = Profile.objects.get(user_id=user_id)
+        notifications = Notification.objects.filter(profile=profile, is_read=False).order_by('-created_at')
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response({
+            "unread_count": notifications.count(),
+            "notifications": serializer.data
+        })
+
+class MarkNotificationAsReadView(APIView):
+    def post(self, request, pk):
+        # Mark the specified notification as read
+        user_id = self.request.user.id
+        profile = Profile.objects.get(user_id=user_id)
+        try:
+            notification = Notification.objects.get(id=pk, profile=profile)
+            notification.is_read = True
+            notification.save()
+            return Response({"success": True})
+        except Notification.DoesNotExist:
+            return Response({"error": "Notification not found"}, status=404)
+        
+class UserNotificationsView(APIView):
+    def get(self, request):
+        # Fetch all notifications for the authenticated user
+        user_id = self.request.user.id
+        profile = Profile.objects.get(user_id=user_id)
+        notifications = Notification.objects.filter(profile=profile).order_by('-created_at')
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response({
+            "notifications": serializer.data
+        })

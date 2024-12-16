@@ -249,6 +249,20 @@ class Profile(BaseModel):
             'is_active': self.user.is_active,
             'profile_pic': self.user.profile_pic
         }
+    
+class Notification(BaseModel):
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Notification"
+        verbose_name_plural = "Notifications"
+        db_table = "notification"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"Notification for {self.user.username}"
 
 
 class Comment(BaseModel):
