@@ -1278,3 +1278,50 @@ class UserNotificationsView(APIView):
         return Response({
             "notifications": serializer.data
         })
+
+
+class PermissionsView(APIView):
+    permission_classes = (crm_roles("ADMIN"),)
+
+    @extend_schema(
+        summary='Retrieve permissions.',
+        parameters=[
+            OpenApiParameter(
+                name='module_id',
+                type=int,
+                description='Filter permissions by module id.',
+                required=False,
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                name='module_name',
+                type=str,
+                description='Filter permissions by module name.',
+                required=False,
+                location=OpenApiParameter.QUERY
+            ),
+        ],
+        responses=PermissionSerializer
+    )
+    def get(self, request):
+        """
+        Retrieve permissions.
+
+        Query Parameters:
+        - module_id (int): Filter permissions by module id. Has more priority than module_name
+        - module_name (string): Filter permissions by module name.
+        """
+        module_name = request.GET.get('module_name', None)  # Fetch the 'module_name' query parameter
+        module_id = request.GET.get('module_id', None)  # Fetch the 'module_id' query parameter
+
+        if module_id:
+            # Filter permissions by the module id
+            permissions = Permission.objects.filter(module__id=module_id).all()
+        elif module_name:
+            # Filter permissions by the module name
+            permissions = Permission.objects.filter(module__name=module_name).all()
+        else:
+            # If no query parameter, return all permissions
+            permissions = Permission.objects.all()
+        serializer = PermissionSerializer(permissions, many=True)
+        return Response(serializer.data)

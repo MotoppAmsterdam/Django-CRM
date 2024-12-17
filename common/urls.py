@@ -40,5 +40,6 @@ urlpatterns = [
     path('notifications/unread/', views.UnreadNotificationsView.as_view(), name='unread-notifications'),
     path('notifications/', views.UserNotificationsView.as_view(), name='unread-notifications'),
     path('notifications/<int:pk>/mark-as-read/', views.MarkNotificationAsReadView.as_view(), name='mark-notification-read'),
+    path('permissions', views.PermissionsView.as_view())
 ]
 
