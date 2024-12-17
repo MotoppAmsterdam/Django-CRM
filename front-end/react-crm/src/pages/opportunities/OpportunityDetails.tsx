@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { Check, Close } from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+
 import {
     Card,
     Link,
@@ -9,8 +12,20 @@ import {
     Alert,
     Stack,
     Button,
-    Chip
+    Chip,
+    Stepper,
+    Step,
+    StepLabel,
+    Typography,
+    StepButton,
+    CircularProgress,
+    SvgIcon,
+    SvgIconProps,
+    StepIconProps,
+    StepConnector
+
 } from '@mui/material'
+
 import { fetchData } from '../../components/FetchData'
 import { OpportunityUrl } from '../../services/ApiUrls'
 import { Tags } from '../../components/Tags'
@@ -121,10 +136,94 @@ export const OpportunityDetails = (props: any) => {
     const [comments, setComments] = useState([])
     const [commentList, setCommentList] = useState('Recent Last')
     const [note, setNote] = useState('')
+    const [currentStage, setCurrentStage] = useState('');
+    const [activeStep, setActiveStep] = useState(0);
+    const [updatingStage, setUpdatingStage] = useState(false);
+    const [stages, setStages] = useState([]);
+    const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+    const [closedWonCompleted, setClosedWonCompleted] = useState(false);
+    const [closedLostCompleted, setClosedLostCompleted] = useState(false);
+    const [updatedStages, setUpdatedStages] = React.useState(stages);
+
 
     useEffect(() => {
         getOpportunityDetails(state.opportunityId)
     }, [state.opportunityId])
+
+    useEffect(() => {
+        if (stages.length > 0 && currentStage) {
+            const initialCompletedSteps = Array.from(
+                { length: stages.findIndex(stage => stage === currentStage) + 1 },
+                (_, i) => i
+            );
+            setCompletedSteps(initialCompletedSteps);
+            setActiveStep(stages.findIndex(stage => stage === currentStage));
+        }
+    }, [stages, currentStage]);
+
+    const extractStages = (stagesArray: [string, string][]) => {
+        return stagesArray.map(([key]) => key); // Extract the first element of each tuple
+    };
+
+    const getActiveStep = (stages: string[], currentStage: string): number => {
+        return stages.findIndex(stage => stage.toLowerCase() === currentStage.toLowerCase());
+    };
+
+
+    const CustomStepConnector = styled(StepConnector)({
+        '& .MuiStepConnector-line': {
+            height: 4, // The height of the lines between steps
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginTop: '5%',
+            width: '60%', // Reducing the line width by 30%
+        },
+    });
+
+
+    const CustomStepIcon = (props: StepIconProps & { stageName?: string }) => {
+        const { active, completed, stageName, className } = props;
+
+        const iconStyle = {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 36, // Increased from 24 to 36px (50% bigger)
+            height: 36, // Increased from 24 to 36px (50% bigger)
+            borderRadius: '50%',
+            color: 'white',
+            backgroundColor: active
+                ? stageName === 'CLOSED WON'
+                    ? 'green'
+                    : stageName === 'CLOSED LOST'
+                        ? 'red'
+                        : '#1976d2'
+                : completed
+                    ? stageName === 'CLOSED LOST'
+                        ? 'red'
+                        : stageName === 'CLOSED WON'
+                            ? 'green'
+                            : '#1976d2'
+                    : '#ccc',
+        };
+
+        const icon = completed ? (
+            stageName === 'CLOSED LOST' ? (
+                <Close fontSize="small" />
+            ) : (
+                <Check fontSize="small" />
+            )
+        ) : null;
+
+        return <div className={className} style={iconStyle}>{icon}</div>;
+    };
+
+
+
+
+
+
+
 
     const getOpportunityDetails = (id: any) => {
         const Header = {
@@ -157,6 +256,10 @@ export const OpportunityDetails = (props: any) => {
                     // setContacts(res?.contacts)
                     // setTeams(res?.teams)
                     // setComments(res?.comments)
+                    setCurrentStage(res?.opportunity_obj.stage)
+                    setStages(res?.stage?.map((stage: [string, string]) => stage[1]) || []);
+
+
                 }
             })
             .catch((err) => {
@@ -211,6 +314,105 @@ export const OpportunityDetails = (props: any) => {
         )
     }
 
+    
+
+    const handleStageUpdate = async () => {
+        if (activeStep > -1) {
+            // Determine the updated stage based on the active step
+            const updatedStage = stages[activeStep];
+
+            // Optimistically update the UI first (before waiting for the server response)
+            setCompletedSteps(prev => {
+                const newCompleted = [...prev];
+
+                // Add the current active step to the completed steps
+                if (!newCompleted.includes(activeStep)) {
+                    newCompleted.push(activeStep);
+                }
+
+                return newCompleted;
+            });
+
+            setCurrentStage(updatedStage); // Update current stage immediately in the UI
+            setActiveStep(activeStep); // Ensure active step is reflected immediately
+
+            // Prepare the headers for the request
+            const Header = {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: localStorage.getItem('Token') || '',
+                org: localStorage.getItem('org') || ''
+            };
+
+            setUpdatingStage(true); // Show loading state
+
+            try {
+                // Prepare the updated data payload to send to the server
+                const updatedData = {
+                    name: opportunityDetails?.name,
+                    account: opportunityDetails?.account?.id,
+                    amount: opportunityDetails?.amount,
+                    currency: opportunityDetails?.currency,
+                    stage: updatedStage,
+                    teams: opportunityDetails?.teams,
+                    lead_source: opportunityDetails?.lead_source,
+                    probability: opportunityDetails?.probability,
+                    description: opportunityDetails?.description,
+                    assigned_to: opportunityDetails?.assigned_to,
+                    contact_name: opportunityDetails?.contact_name,
+                    due_date: opportunityDetails?.closed_on,
+                    tags: opportunityDetails?.tags,
+                    opportunity_attachment: opportunityDetails?.opportunity_attachment,
+                };
+
+                // Make the PUT request to update the opportunity
+                const updateResponse = await fetchData(
+                    `${OpportunityUrl}/${state.opportunityId}/`,
+                    'PUT',
+                    JSON.stringify(updatedData),
+                    Header
+                );
+
+                if (updateResponse.error) {
+                    console.error('Error updating opportunity:', updateResponse);
+                    // If there's an error, you might want to reset the stage or show an error message
+                }
+            } catch (error) {
+                console.error('Error occurred during the update:', error);
+            } finally {
+                // Always hide the loading state regardless of success or failure
+                setUpdatingStage(false);
+            }
+        }
+    };
+
+    
+
+    const renderStages = () => {
+        return stages.filter((stage, index) => {
+            if (index === 8) {
+                // Include "CLOSED LOST" if it is active, completed, or "CLOSED WON" is not completed
+                return (
+                    activeStep === 8 ||
+                    completedSteps.includes(8) ||
+                    !completedSteps.includes(7)
+                );
+            }
+            if (index === 7) {
+                // Include "CLOSED WON" if it is active, completed, and "CLOSED LOST" is not completed
+                return (
+                    activeStep === 7 ||
+                    (completedSteps.includes(7) && !completedSteps.includes(8)) ||
+                    !completedSteps.includes(8)
+                );
+            }
+            // Include all other stages
+            return true;
+        });
+    };
+
+
+
     const backbtnHandle = () => {
         navigate('/app/opportunities')
     }
@@ -224,13 +426,103 @@ export const OpportunityDetails = (props: any) => {
         <Box sx={{ mt: '60px' }}>
             <div>
                 <CustomAppBar backbtnHandle={backbtnHandle} module={module} backBtn={backBtn} crntPage={crntPage} editHandle={editHandle} />
-                <Box sx={{ mt: '110px', p: '20px', display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Box
+                    sx={{
+                        mr: '20px',
+                        ml: '20px',
+                        mt: '120px',
+                        p: '20px',
+                        borderRadius: '10px',
+                        border: '1px solid #80808038',
+                        backgroundColor: 'white',
+                    }}
+                >
+                    <Typography
+                        sx={{
+                            mb: 3,
+                            textAlign: 'center',
+                            fontWeight: 500,
+                            fontSize: '1.25rem',
+                        }}
+                    >
+                        Opportunity Stage
+                    </Typography>
+                    <Stepper
+                        nonLinear
+                        activeStep={activeStep}
+                        alternativeLabel
+                        connector={<CustomStepConnector />}
+                        sx={{
+                            width: '100%',
+                            justifyContent: 'center',
+                            '@media (max-width: 900px)': {
+                                fontSize: '0.8rem', // Reduce font size on smaller screens
+                                flexDirection: 'column', // Stack the stepper vertically when narrow
+                                alignItems: 'center', // Center-align the items in the column view
+                            },
+                        }}
+                    >
+                        {renderStages().map((stage, index) => (
+                            <Step key={stage} completed={completedSteps.includes(stages.indexOf(stage))}>
+                                <StepButton onClick={() => setActiveStep(stages.indexOf(stage))}
+                                
+                                >
+                                    <StepLabel
+                                        StepIconComponent={(props) => (
+                                            <CustomStepIcon {...props} stageName={stage} />
+                                        )}
+                                        sx={{
+                                            '& .MuiStepLabel-label': {
+                                                color: 'black', // Default label color
+                                            },
+                                            '& .MuiStepLabel-label.Mui-active': {
+                                                color: '#1975d2', // Active step label color
+                                            },
+                                            '& .MuiStepLabel-label.Mui-completed': {
+                                                color: 'black', // Completed step label color
+                                            },
+                                            '& .MuiStepLabel-label.Mui-active.Mui-completed': {
+                                                color: '#1975d2', // Label when both active and completed
+                                            },
+                                        }}
+
+                                    >
+                                        {stage}
+                                    </StepLabel>
+                                </StepButton>
+                            </Step>
+                        ))}
+                    </Stepper>
+
+
+
+
+                    <Box sx={{ mt: 3, textAlign: 'center' }}>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleStageUpdate}
+                            disabled={updatingStage}
+                            sx={{ mt: 2 }}
+                        >
+                            {updatingStage ? <CircularProgress size={24} /> : 'Update Stage'}
+                        </Button>
+                    </Box>
+                </Box>
+
+
+                <Box sx={{ mt: '0', p: '20px', display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Box sx={{ width: '65%' }}>
                         <Box sx={{ borderRadius: '10px', border: '1px solid #80808038', backgroundColor: 'white' }}>
+
+
+
                             <div style={{ padding: '20px', borderBottom: '1px solid lightgray', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ fontWeight: 600, fontSize: '18px', color: '#1a3353f0' }}>
                                     Opportunity Information
                                 </div>
+
+
                                 <div style={{ color: 'gray', fontSize: '16px', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginRight: '15px' }}>
                                         created &nbsp;
