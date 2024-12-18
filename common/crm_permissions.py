@@ -15,10 +15,13 @@ class CrmRoles(IsAuthenticated):
         self.roles = roles
 
     def has_permission(self, request, view):
-        user_id = request.user.id
-        profile = Profile.objects.filter(user_id=user_id).first()
-        is_admin = profile.role.name == "ADMIN" or request.user.is_superuser
-        return super().has_permission(request, view) and (is_admin or profile.role.name in self.roles)
+        if super().has_permission(request, view):
+            user_id = request.user.id
+            profile = Profile.objects.filter(user__id=user_id).first()
+            is_admin = profile.role.name == "ADMIN" or request.user.is_superuser
+            return is_admin or profile.role.name in self.roles
+        else:
+            return False
 
 
 class CrmPermissions(IsAuthenticated):
