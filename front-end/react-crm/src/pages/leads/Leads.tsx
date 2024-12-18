@@ -179,6 +179,8 @@ export default function Leads(props: any) {
 
   const [deleteLeadModal, setDeleteLeadModal] = useState(false)
   const [selectedId, setSelectedId] = useState('')
+  const [selectedTab, setSelectedTab] = useState(0); // For tracking selected tab
+
 
   useEffect(() => {
     if (!!localStorage.getItem('org')) {
@@ -284,6 +286,10 @@ export default function Leads(props: any) {
     }
   };
 
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setSelectedTab(newValue);
+  };
+
   const getCompanyName = (companyId: string): string => {
     console.log(companyId)
     console.log(companies)
@@ -374,7 +380,7 @@ export default function Leads(props: any) {
 
   return (
     <Box sx={{ mt: '60px' }}>
-            <CustomToolbar sx={{ flexDirection: 'row-reverse' }}>
+      <CustomToolbar sx={{ flexDirection: 'row-reverse' }}>
         {/* <Tabs defaultValue={tab} onChange={handleChangeTab} sx={{ mt: '26px' }}>
           <CustomTab value="open" label="Open"
             sx={{
@@ -436,89 +442,109 @@ export default function Leads(props: any) {
           </Button>
         </Stack>
       </CustomToolbar>
-      <Container sx={{ width: '100%' }}>
-        <Paper sx={{ width: '100%', mb: 2, p: '15px' }}>
-          <TableContainer>
-            <Table>
-              <EnhancedTableHead
-                order={order}
-                orderBy={orderBy}
-                onRequestSort={handleRequestSort}
-                headCells={headCells}
-              />
-              <TableBody>
-                {openLeads?.length
-                  ? stableSort(openLeads, getComparator(order, orderBy)).map((item: any, index: any) => (
-                    <TableRow
-                      key={index}
-                      sx={{
-                        border: 0,
-                        '&:nth-of-type(even)': { backgroundColor: 'whitesmoke' },
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      <TableCell onClick={() => selectLeadList(item.id)}>
-                        {item.title}
-                      </TableCell>
-                      <TableCell> {getCompanyName(item.company)}</TableCell>
-                      <TableCell>{item.phone || '---'}</TableCell>
-                      <TableCell>{item.email}</TableCell>
-                      <TableCell> {item.country}</TableCell>
-                      <TableCell>
-                        <Box
-                          sx={{
-                            border: `1px solid ${statusStyles[item.status]?.borderColor || defaultStyle.borderColor}`,
-                            backgroundColor: statusStyles[item.status]?.backgroundColor || defaultStyle.backgroundColor,
-                            color: statusStyles[item.status]?.color || defaultStyle.color,
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            textAlign: 'center',
-                            fontSize: '0.875rem',
-                            fontWeight: 'bold',
-                            display: 'inline-block',
-                            minWidth: '80px',
-                          }}
-                        >
-                          {item.status}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
+      <Container sx={{ width: '100%', maxWidth: '100%', minWidth: '100%' }}>
+        <Box sx={{ width: '100%', minWidth: '100%', m: '15px 0px 0px 0px' }}>
 
-                        <FaEdit
-                          onClick={() =>
-                            navigate('/app/leads/edit-lead', {
-                              state: {
-                                id: item.id,
-                                value: item,
-                                contacts: contacts,
-                                status: status,
-                                source: source,
-                                companies: companies,
-                                tags: tags,
-                                users: users,
-                                countries: countries,
-                                industries: industries,
-                              },
-                            })
-                          }
-                          style={{ fill: '#1A3353', cursor: 'pointer', width: '18px' }}
-                        />
+          <Paper sx={{ width: '100%', mb: 2, p: '15px' }}>
+            <Box sx={{ marginBottom: 2, marginLeft: 2, marginTop: 2 }}>
+              <Tabs value={selectedTab} onChange={handleTabChange} aria-label="view tabs">
+                <Tab label="List View" />
+                <Tab label="Card View" />
+              </Tabs>
+            </Box>
+
+            {selectedTab === 0 ? (
+              <>
+                <TableContainer>
+                  <Table>
+                    <EnhancedTableHead
+                      order={order}
+                      orderBy={orderBy}
+                      onRequestSort={handleRequestSort}
+                      headCells={headCells}
+                    />
+                    <TableBody>
+                      {openLeads?.length
+                        ? stableSort(openLeads, getComparator(order, orderBy)).map((item: any, index: any) => (
+                          <TableRow
+                            key={index}
+                            sx={{
+                              border: 0,
+                              '&:nth-of-type(even)': { backgroundColor: 'whitesmoke' },
+                              textTransform: 'capitalize',
+                            }}
+                          >
+                            <TableCell onClick={() => selectLeadList(item.id)}>
+                              {item.title}
+                            </TableCell>
+                            <TableCell> {getCompanyName(item.company)}</TableCell>
+                            <TableCell>{item.phone || '---'}</TableCell>
+                            <TableCell>{item.email}</TableCell>
+                            <TableCell> {item.country}</TableCell>
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  border: `1px solid ${statusStyles[item.status]?.borderColor || defaultStyle.borderColor}`,
+                                  backgroundColor: statusStyles[item.status]?.backgroundColor || defaultStyle.backgroundColor,
+                                  color: statusStyles[item.status]?.color || defaultStyle.color,
+                                  borderRadius: '6px',
+                                  padding: '6px 12px',
+                                  textAlign: 'center',
+                                  fontSize: '0.875rem',
+                                  fontWeight: 'bold',
+                                  display: 'inline-block',
+                                  minWidth: '80px',
+                                }}
+                              >
+                                {item.status}
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+
+                              <FaEdit
+                                onClick={() =>
+                                  navigate('/app/leads/edit-lead', {
+                                    state: {
+                                      id: item.id,
+                                      value: item,
+                                      contacts: contacts,
+                                      status: status,
+                                      source: source,
+                                      companies: companies,
+                                      tags: tags,
+                                      users: users,
+                                      countries: countries,
+                                      industries: industries,
+                                    },
+                                  })
+                                }
+                                style={{ fill: '#1A3353', cursor: 'pointer', width: '18px' }}
+                              />
 
 
 
-                        <FaTrashAlt style={{ cursor: 'pointer' }} onClick={() => deleteLead(item.id)} />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                  : null}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          {loading && <Spinner />}
-        </Paper>
+                              <FaTrashAlt style={{ cursor: 'pointer' }} onClick={() => deleteLead(item.id)} />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                        : null}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </>
+            ) : (
+              // Card View
+              <Box sx={{ padding: 2 }}>
+                <h2>Card Content</h2>
+                {/* You can replace this with actual card components later */}
+              </Box>
+            )}
+            {loading && <Spinner />}
+          </Paper>
+        </Box>
 
         {/* Pagination */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 2 }}>
           <Box>
             <Button
               onClick={handlePreviousPage}
@@ -535,7 +561,7 @@ export default function Leads(props: any) {
               Next
             </Button>
           </Box>
-  
+
         </Box>
       </Container>
 

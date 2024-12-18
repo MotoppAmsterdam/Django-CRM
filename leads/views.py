@@ -1,7 +1,9 @@
 from django.db.models import Q
+from django.db.models import Prefetch
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
+from leads.pagination import LeadCardViewPagination
 from rest_framework import status
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
@@ -28,6 +30,7 @@ from leads.models import Company, Lead
 from leads.serializer import (
     CompanySerializer,
     CompanySwaggerSerializer,
+    LeadCardViewSerializer,
     LeadCreateSerializer,
     LeadSerializer,
     TagsSerializer,
@@ -856,3 +859,31 @@ class LeadStatusUpdate(APIView):
         serializer.save()
         return Response({"error": False, "message": "Status updated!"},
                         status=status.HTTP_200_OK)
+        
+class LeadCardView(APIView):
+    pagination_class = LeadCardViewPagination
+
+    def get(self, request, *args, **kwargs):
+        status = request.query_params.get('status')
+        if not status:
+            return Response({"error": "Status is required"}, status=400)
+        VALID_STATUSES = [status[0] for status in LEAD_STATUS]
+        if status not in VALID_STATUSES:
+            return Response({"error": "Invalid lead status"}, status=400)
+        
+        leads_filtered_by_status = Lead.objects.filter(status=status).prefetch_related(
+            Prefetch(
+                "assigned_to",
+                queryset=Profile.objects.select_related("user"),
+                to_attr="assigned_profiles"
+            )
+        ).only("id", "title", "country", "opportunity_amount", "probability")
+
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(leads_filtered_by_status, request)
+        if page is not None:
+            serialized_data = LeadCardViewSerializer(page, many=True).data
+            return paginator.get_paginated_response(serialized_data)
+        return Response({"detail": "No leads found for this status"}, status=404)
+
+

@@ -299,3 +299,29 @@ class LeadUpdateStatusSerializer(serializers.ModelSerializer):
         model = Lead
         fields = ["status"]
 
+class LeadCardViewSerializer(serializers.ModelSerializer):
+    profile_pics = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Lead
+        fields = [
+            "id",
+            "title",
+            "country",
+            "opportunity_amount",
+            "probability",
+            "profile_pics",  # Renamed for clarity, now returns a list
+        ]
+
+    def get_profile_pics(self, obj):
+        """
+        Get profile pictures of all assigned users.
+        """
+        if obj.assigned_profiles:
+            return [
+                profile.user.profile_pic
+                for profile in obj.assigned_profiles
+                if profile.user and profile.user.profile_pic
+            ]
+        return []
+
