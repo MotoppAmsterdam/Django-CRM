@@ -9,6 +9,8 @@ app_name = "api_common"
 
 modules_router = DefaultRouter()
 modules_router.register('', views.ModuleViewSet, basename='module')
+permissions_router = DefaultRouter()
+permissions_router.register('', views.PermissionsViewSet, basename='permission')
 
 urlpatterns = [
     path("dashboard/", views.ApiHomeView.as_view()),
@@ -43,7 +45,7 @@ urlpatterns = [
     path('notifications/unread/', views.UnreadNotificationsView.as_view(), name='unread-notifications'),
     path('notifications/', views.UserNotificationsView.as_view(), name='unread-notifications'),
     path('notifications/<int:pk>/mark-as-read/', views.MarkNotificationAsReadView.as_view(), name='mark-notification-read'),
-    path('permissions/', views.PermissionsListView.as_view()),
+    path('permissions/', include(permissions_router.urls)),
     path('modules/', include(modules_router.urls)),
 ]
 

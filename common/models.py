@@ -36,7 +36,7 @@ class Module(models.Model):
 
 
 class Permission(models.Model):
-    name = models.CharField(max_length=500, unique=True, primary_key=True)
+    name = models.CharField(max_length=100, unique=True, primary_key=True)
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="permissions")
 
 

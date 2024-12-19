@@ -47,18 +47,33 @@ class ModuleInputSerializer(serializers.ModelSerializer):
         fields = ("name",)
 
 
-class PermissionSerializer(serializers.ModelSerializer):
-    module = ModuleSerializer()
-    class Meta:
-        model = Permission
-        fields = (
-            "name",
-            "module"
-        )
+class PermissionSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=100)
+    module_id = serializers.PrimaryKeyRelatedField(queryset=Module.objects.all())
+
+    def validate_module_id(self, value):
+        if not Module.objects.filter(pk=module_id).exists():
+            raise ValidationError(f"There is no module with id = {module_id}")
+        return value
+
+    def create(self, validated_data):
+        name = validated_data.pop("name")
+        module_id = validated_data.pop("module_id")
+        module = Module.objects.get(pk=module_id)
+        instance = Permission.objects.create(name=name, module=module)
+        return instance
+
+    def update(self, instance, validated_data):
+        name = validated_data.pop("name")
+        module_id = validated_data.pop("module_id")
+        instance.name = name
+        module = Module.objects.get(pk=module_id)
+        instance.module = module
+        return instance
 
 
 class RoleSerializer(serializers.ModelSerializer):
-    permissions = PermissionSerializer(many=True)
+    permissions = serializers.ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Permission.objects.all()))
 
     class Meta:
         model = Role
@@ -66,18 +81,6 @@ class RoleSerializer(serializers.ModelSerializer):
             "name",
             "permissions"
         )
-
-
-class RoleInputSerializer(serializers.ModelSerializer):
-    permissions = serializers.ListSerializer(child=serializers.CharField())
-
-    class Meta:
-        model = Role
-        fields = (
-            "name",
-            "permissions"
-        )
-
 
     def validate_permissions(self, value):
         for name in value:

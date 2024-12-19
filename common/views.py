@@ -22,7 +22,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema, extend_schema_view
 # from common.external_auth import CustomDualAuthentication
 from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token
@@ -66,6 +66,7 @@ from teams.serializer import TeamsSerializer
 from django.core.exceptions import ObjectDoesNotExist
 from common.access_decorators_mixins import has_permission
 from common.crm_permissions import IsAdmin, crm_permissions, crm_roles
+from help_tools import help_views
 
 class GetTeamsAndUsersView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -1198,12 +1199,12 @@ class RoleView(APIView):
 
     @extend_schema(tags=['roles'],
                    summary='Update a role object with a new name or permissions',
-                   request=RoleInputSerializer,
+                   request=RoleSerializer,
                    responses=RoleSerializer)
     def put(self, request, pk):
         current = Role.objects.get(pk=pk)
         is_new = not current
-        serializer = RoleInputSerializer(data=request.data, instance=current)
+        serializer = RoleSerializer(data=request.data, instance=current)
         serializer.is_valid(raise_exception=True)
         role = serializer.save()
 
@@ -1233,9 +1234,9 @@ class RolesView(APIView):
     @extend_schema(tags=['roles'],
                    summary='Create a new role object for a provided name and permissions',
                    responses=RoleSerializer,
-                   request=RoleInputSerializer)
+                   request=RoleSerializer)
     def post(self, request):
-        role_serializer = RoleInputSerializer(data=request.data)
+        role_serializer = RoleSerializer(data=request.data)
         if role_serializer.is_valid():
             role = role_serializer.save()
             response_serializer = RoleSerializer(role)
@@ -1280,71 +1281,24 @@ class UserNotificationsView(APIView):
         })
 
 
-class PermissionsListView(APIView):
+@extend_schema_view(list=extend_schema(parameters=swagger_params1.permissions_params))
+class PermissionsViewSet(help_views.OrgViewSet):
     permission_classes = (crm_roles(["ADMIN"]),)
     pagination_class = LimitOffsetPagination
+    serializer_class = PermissionSerializer
+    queryset = Permission.objects.all()
 
-    params = [
-        OpenApiParameter(
-            name='module_id',
-            type=int,
-            description='Filter permissions by module id.',
-            required=False,
-            location=OpenApiParameter.QUERY
-        ),
-        OpenApiParameter(
-            name='module_name',
-            type=str,
-            description='Filter permissions by module name.',
-            required=False,
-            location=OpenApiParameter.QUERY
-        ),
-        OpenApiParameter(
-            name='limit',
-            type=int,
-            description='Number of results to return per page.',
-            required=False,
-            location=OpenApiParameter.QUERY,
-            default=20
-        ),
-        OpenApiParameter(
-            name='offset',
-            type=int,
-            description="The starting position of the results.",
-            required=False,
-            location=OpenApiParameter.QUERY,
-            default=0
-        ),
-    ]
-
-    @extend_schema(
-        summary='Retrieve permissions.',
-        parameters=params
-    )
-    def get(self, request):
-        module_name = request.GET.get('module_name', None)  # Fetch the 'module_name' query parameter
-        module_id = request.GET.get('module_id', None)  # Fetch the 'module_id' query parameter
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        module_id = self.request.GET.get('module_id', None)  # Fetch the 'module_id' query parameter
         if module_id:
             # Filter permissions by the module id
-            permissions = Permission.objects.filter(module__id=module_id)
-        elif module_name:
-            # Filter permissions by the module name
-            permissions = Permission.objects.filter(module__name=module_name)
-        else:
-            # If no query parameter, return all permissions
-            permissions = Permission.objects.all()
-
-        paginator = self.pagination_class()
-        paginator.default_limit = 10
-        paginator.max_limit = 1000
-        paginated_permissions = paginator.paginate_queryset(permissions, request)
-        serializer = PermissionSerializer(paginated_permissions, many=True)
-        return paginator.get_paginated_response(serializer.data)
+            queryset = queryset.filter(module__id=module_id)
+        return queryset
 
 
-
-class ModuleViewSet(viewsets.ModelViewSet):
+class ModuleViewSet(help_views.OrgViewSet):
+    permission_classes = (crm_roles(["ADMIN"]),)
     queryset = Module.objects.all()
 
     def get_serializer_class(self):
