@@ -24,7 +24,7 @@ from django.views.decorators.http import require_http_methods
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 # from common.external_auth import CustomDualAuthentication
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
@@ -1341,3 +1341,13 @@ class PermissionsListView(APIView):
         paginated_permissions = paginator.paginate_queryset(permissions, request)
         serializer = PermissionSerializer(paginated_permissions, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+
+
+class ModuleViewSet(viewsets.ModelViewSet):
+    queryset = Module.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ModuleInputSerializer
+        return ModuleSerializer

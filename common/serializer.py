@@ -41,6 +41,12 @@ class ModuleSerializer(serializers.ModelSerializer):
         )
 
 
+class ModuleInputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Module
+        fields = ("name",)
+
+
 class PermissionSerializer(serializers.ModelSerializer):
     module = ModuleSerializer()
     class Meta:

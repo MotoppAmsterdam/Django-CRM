@@ -1,11 +1,14 @@
-from django.urls import path
+from django.urls import path, include
 from rest_framework_simplejwt import views as jwt_views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.routers import DefaultRouter
 
 from common import views
 
 app_name = "api_common"
 
+modules_router = DefaultRouter()
+modules_router.register('', views.ModuleViewSet, basename='module')
 
 urlpatterns = [
     path("dashboard/", views.ApiHomeView.as_view()),
@@ -40,6 +43,7 @@ urlpatterns = [
     path('notifications/unread/', views.UnreadNotificationsView.as_view(), name='unread-notifications'),
     path('notifications/', views.UserNotificationsView.as_view(), name='unread-notifications'),
     path('notifications/<int:pk>/mark-as-read/', views.MarkNotificationAsReadView.as_view(), name='mark-notification-read'),
-    path('permissions', views.PermissionsListView.as_view())
+    path('permissions/', views.PermissionsListView.as_view()),
+    path('modules/', include(modules_router.urls)),
 ]
 
