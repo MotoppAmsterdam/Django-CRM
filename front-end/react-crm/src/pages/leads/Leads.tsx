@@ -18,6 +18,7 @@ import { FiChevronRight } from "@react-icons/all-files/fi/FiChevronRight";
 import { CustomTab, CustomToolbar, FabLeft, FabRight } from '../../styles/CssStyled';
 import '../../styles/style.css'
 import { EnhancedTableHead } from '../../components/EnchancedTableHead';
+import LeadsCardView from './LeadsCardView';
 
 const statusStyles: { [key: string]: { backgroundColor: string; borderColor: string; color: string } } = {
   assigned: { backgroundColor: '#3E79F761', borderColor: '#3E79F7', color: '#3E79F7' },
@@ -535,8 +536,7 @@ export default function Leads(props: any) {
             ) : (
               // Card View
               <Box sx={{ padding: 2 }}>
-                <h2>Card Content</h2>
-                {/* You can replace this with actual card components later */}
+                <LeadsCardView />
               </Box>
             )}
             {loading && <Spinner />}
