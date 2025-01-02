@@ -136,6 +136,8 @@ def seed_database():
                     'public relations', 'campaign', 'other'
                 ]),
                 probability=random.choice([10, 20, 30, 40, 50, 60, 70]),  # Multiples of 10, ≤ 70
+                country=random.choice(['US', 'NL', 'GB']),
+                opportunity_amount=random.randint(6, 100) * 500,  # Multiple of 500, minimum 3000
                 org=org,
                 company=company,
                 created_by=random.choice(profiles).user  # Created by a random profile in the org
