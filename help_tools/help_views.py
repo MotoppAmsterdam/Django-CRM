@@ -12,10 +12,30 @@ from django.core.exceptions import PermissionDenied
     partial_update=extend_schema(parameters=organization_params)
 )
 class OrgViewSet(viewsets.ModelViewSet):
+
+    # This view set should be used for managing a model within an org.
+    # It requires providing a header "org" containing an organization id, and then filters it's queryset.
+    # Define a queryset property in children classes.
+    # The maintained model must have ManyToMany relationship to Org model under the "organizations" field.
+
+    org_id: str
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.org_id:
+            queryset = queryset.filter(org__id=self.org_id)
+        return queryset
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['org_id'] = self.org_id
+        return context
+
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_superuser:
             org_header = request.headers.get("org")
             org_id = str(request.profile.org.id)
+            self.org_id = org_id
             if org_id != org_header:
                 raise PermissionDenied("You don't have permissions to perform this action!")
         return super().dispatch(request, *args, **kwargs)

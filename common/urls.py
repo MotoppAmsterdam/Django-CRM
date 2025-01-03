@@ -7,10 +7,10 @@ from common import views
 
 app_name = "api_common"
 
-modules_router = DefaultRouter()
-modules_router.register('', views.ModuleViewSet, basename='module')
 permissions_router = DefaultRouter()
 permissions_router.register('', views.PermissionsViewSet, basename='permission')
+roles_router = DefaultRouter()
+roles_router.register('', views.RolesViewSet, basename='role')
 
 urlpatterns = [
     path("dashboard/", views.ApiHomeView.as_view()),
@@ -39,13 +39,11 @@ urlpatterns = [
     path('auth/register-user/', views.UserRegistrationView.as_view(),
         name='user-registration'),
     path('auth/verify-email/<str:activation_key>/', views.VerifyEmailForRegistrationView.as_view(),
-        name='verify-email'), 
-    path("roles", views.RolesView.as_view()),
-    path("roles/<str:pk>", views.RoleView.as_view()),
+        name='verify-email'),
     path('notifications/unread/', views.UnreadNotificationsView.as_view(), name='unread-notifications'),
     path('notifications/', views.UserNotificationsView.as_view(), name='unread-notifications'),
     path('notifications/<int:pk>/mark-as-read/', views.MarkNotificationAsReadView.as_view(), name='mark-notification-read'),
+    path('roles/', include(roles_router.urls)),
     path('permissions/', include(permissions_router.urls)),
-    path('modules/', include(modules_router.urls)),
+    path('modules/', views.ModulesListView.as_view()),
 ]
-
