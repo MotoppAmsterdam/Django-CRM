@@ -12,6 +12,7 @@ urlpatterns = [
         name="create_lead_from_site",
     ),
     path("", views.LeadListView.as_view()),
+    path("card-view/", views.LeadCardView.as_view()),
     path("<str:pk>/", views.LeadDetailView.as_view()),
     path("upload/", views.LeadUploadView.as_view()),
     path("comment/<str:pk>/", views.LeadCommentView.as_view()),
@@ -19,4 +20,5 @@ urlpatterns = [
     path("companies",views.CompaniesView.as_view()),
     path('company/<str:pk>', views.CompanyDetail.as_view()),
     path('<str:pk>/status', views.LeadStatusUpdate.as_view()),
+
 ]
