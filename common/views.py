@@ -64,7 +64,6 @@ from opportunity.serializer import OpportunitySerializer
 from teams.models import Teams
 from teams.serializer import TeamsSerializer
 from django.core.exceptions import ObjectDoesNotExist
-from common.access_decorators_mixins import has_permission
 from common.crm_permissions import IsAdmin, crm_permissions, crm_roles
 from help_tools import help_views
 
@@ -1223,7 +1222,6 @@ class UserNotificationsView(APIView):
         return Response({
             "notifications": serializer.data
         })
-
 
 
 @extend_schema_view(list=extend_schema(parameters=swagger_params1.permissions_params))

@@ -188,4 +188,6 @@ def seed_database():
             opportunity.contacts.add(lead.contacts.first())
             opportunity.assigned_to.set(lead.assigned_to.all())
 
-seed_database()
+
+if not Org.objects.all():
+    seed_database()

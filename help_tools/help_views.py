@@ -16,7 +16,7 @@ class OrgViewSet(viewsets.ModelViewSet):
     # This view set should be used for managing a model within an org.
     # It requires providing a header "org" containing an organization id, and then filters it's queryset.
     # Define a queryset property in children classes.
-    # The maintained model must have ManyToMany relationship to Org model under the "organizations" field.
+    # The maintained model must have ForeignKey relationship(one to many) to Org model under the "org" field.
 
     org_id: str
 
