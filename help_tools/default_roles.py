@@ -40,18 +40,24 @@ def generate_default_access_models(org: Org):
     all_permissions = set()
     for module_name in default_modules_names:
         module = Module.objects.create(name=module_name, org=org)
+        module_permissions = list()
         for perm_type in permission_types:
             perm_name = f"{perm_type}_{module.name.lower()}"
-            permission = Permission.objects.create(name=perm_name, module=module, org=org)
+            permission = Permission(name=perm_name, module=module, org=org)
             all_permissions.add(permission)
+            module_permissions.append(permission)
 
         if module.name == "Leads":
-            status_perm = Permission.objects.create(name="update_lead_status", module=module, org=org)
+            status_perm = Permission(name="update_lead_status", module=module, org=org)
             all_permissions.add(status_perm)
+            module_permissions.append(status_perm)
 
         if module.name == "Opportunities":
-            status_perm = Permission.objects.create(name="update_opportunity_status", module=module, org=org)
+            status_perm = Permission(name="update_opportunity_status", module=module, org=org)
             all_permissions.add(status_perm)
+            module_permissions.append(status_perm)
+
+        Permission.objects.bulk_create(module_permissions)
 
     for role_name, permissions_names in roles_permissions_names.items():
         role = Role.objects.create(name=role_name, org=org)
