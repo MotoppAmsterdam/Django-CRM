@@ -1270,6 +1270,7 @@ class RolesViewSet(help_views.OrgViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
 
+    @extend_schema(parameters=swagger_params1.organization_params)
     def create(self, request, *args, **kwargs):
         serializer = RoleInputSerializer(data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
@@ -1280,6 +1281,7 @@ class RolesViewSet(help_views.OrgViewSet):
                                              include_permissions=True)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(parameters=swagger_params1.organization_params)
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = RoleInputSerializer(instance=instance, data=request.data, context=self.get_serializer_context())
