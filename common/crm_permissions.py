@@ -1,5 +1,5 @@
-from rest_framework.permissions import IsAuthenticated, BasePermission
-from common.models import Profile, Role, Permission
+from rest_framework.permissions import IsAuthenticated
+from common.models import Profile, Permission
 
 
 class IsAdmin(IsAuthenticated):
